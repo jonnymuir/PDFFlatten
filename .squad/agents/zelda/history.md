@@ -40,3 +40,15 @@ Core path is stable. Future enhancements can extend (incremental stream parsing,
 - Orchestration log: `.squad/orchestration-log/zelda-2026-05-14.log`.
 
 **Status:** All fixture-replacement work complete and validated. Library engine remains stable.
+
+- 2026-05-14T22:36:43.725+01:00 — Diagnosed the real-value-loss case as broken text appearance resources, not missing `/V` data: the populated `/AP /N` streams draw `/Helv`, but their `/Resources /Font` entry resolves to invalid object `253 0 R`, so appearance reuse flattened the page without a resolvable text font.
+- 2026-05-14T22:36:43.725+01:00 — Hardened flattening for text widgets by repairing unresolved appearance font aliases from widget `/DA` + `/DR` (and standard Acrobat aliases when needed), while keeping the original appearance content and placement intact; added a synthetic compressed regression that exercises the same broken-resource shape.
+
+## 2026-05-14T21:48:37Z — Appearance Resource Repair Complete
+
+**Team Outcome:**
+- **Robbie** added `AppearanceResourceRegressionTests` to guard font renderability in flattened output.
+- **Scribe** merged decisions and logged orchestration for the session.
+
+**Session Result:**
+All 15 regression tests passing. The flattening engine now repairs broken appearance font resources before reusing appearances, ensuring visible text in flattened PDFs even when source widget appearances have orphaned font references. Real-world PDF validation (`/Users/jonnymuir/Downloads/flattened.pdf`) confirms field values render correctly after flattening.

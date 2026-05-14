@@ -38,6 +38,12 @@
 - 2026-05-14T22:30:41.645+01:00 — Replace the removed sensitive regression PDF with `GenericAcroFormFixture.pdf`, a checked-in synthetic one-page AcroForm sample at the repo root. Fixture scope is narrowly aligned to the current flattening contract: classic xref table, direct page `/Annots`, widget annotations that carry `/T` and `/V`, and normal appearance streams at `/AP /N`. This proves the existing flattening path without reintroducing sensitive content.
 - 2026-05-14T22:30:41.645+01:00 — Active tests and README examples depend on the generic `GenericAcroFormFixture.pdf` sample only for structural behavior: it must be a valid populated AcroForm PDF with known generic field/value pairs and normal appearance streams; flattening it must remove `/AcroForm`, remove widget annotations, and emit one appearance draw per field. This keeps regression coverage meaningful without baking business-specific data into active quality gates.
 
+### Zelda (Appearance Resource Repair)
+- 2026-05-14T22:36:43.725+01:00 — When flattening text widgets, PDFFlatten may not trust a normal appearance stream's font resources blindly. If the appearance content references font names that do not resolve from that appearance stream's `/Resources`, the flattener repairs the appearance resource dictionary before painting it onto the page. Decode plain or `/FlateDecode` appearance streams to inspect `Tf` font operands. For text fields (`/FT /Tx`), repair missing appearance font mappings from the widget's own `/DA` + `/DR` when possible. If no widget font can be borrowed, fall back to a narrow set of standard Acrobat font aliases (`Helv`, `HeBo`, `HeOb`, `HeBO`, `Cour`, `CoBo`, `CoOb`, `CoBO`, `TiRo`, `TiBo`, `TiIt`, `TiBI`, `ZaDb`).
+
+### Robbie (Appearance Resource Regression)
+- 2026-05-14T22:36:43.725+01:00 — Regression coverage must assert renderability, not just widget removal or `/Do` count. Flattening can look structurally successful while still dropping visible field text if the replayed appearance XObjects do not carry usable font resources after `/AcroForm` is removed. For each flattened `FldFlat*` appearance XObject, every font named by a `Tf` operator must still resolve from the XObject or page `/Resources`. Use a generic synthetic text-field fixture whose widget appearance depends on form-level font resources.
+
 ## Governance
 
 - All meaningful changes require team consensus

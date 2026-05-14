@@ -42,3 +42,38 @@ The sample app now runs end-to-end with input/output file arguments, produces a 
 - Fixture validation: `BAPSL_P60_Populated.pdf` flattened output must have no `/AcroForm` or widget annotations left.
 - Orchestration log: `.squad/orchestration-log/2026-05-14T21:22:32Z-Robbie.md`.
 
+## 2026-05-14T22:30:41.645+01:00 — Generic fixture audit
+
+**What I checked:**
+- Audited the tests, sample CLI path, README usage text, and squad records for assumptions tied to the removed sensitive fixture.
+- Tightened the regression suite around generic fixture invariants instead of hard-coding the old domain-shaped sample expectations.
+- Recorded which remaining references are historical notes versus active test or documentation dependencies.
+
+**Outcome:**
+The active suite now depends on a generic populated AcroForm sample and proves the important behavior: populated widgets exist before flattening, flattening removes `/AcroForm` and widget annotations, and the page replays one appearance draw per field.
+
+**Learning:**
+- When a fixture must be swapped for privacy reasons, preserve only the structural contract the tests need and strip business-specific names, values, and fixture lore out of active assertions and docs.
+
+## 2026-05-14T22:36:43.725+01:00 — Missing field values regression
+
+**What I checked:**
+- Flattened `/Users/jonnymuir/Downloads/BAPSL_P60_Populated.pdf` through the sample app and inspected the resulting PDF structure instead of trusting widget removal alone.
+- Traced the real observable to flattened appearance XObjects: the suite needed to prove those XObjects still had usable font resources after `/AcroForm` removal.
+- Added a generic regression fixture where the widget appearance text depends on form-level font resources, then asserted the flattened output keeps those fonts resolvable.
+
+**Outcome:**
+- The regression suite now includes coverage for the quiet failure mode behind “page still there, values missing.”
+- Re-running the sample path against the Downloads PDF produced flattened appearance XObjects with embedded/resolvable font resources, and `dotnet test PDFFlatten.sln --configuration Release --no-restore` passed with 15 tests.
+
+**Learning:**
+- Counting replayed appearance draws is not enough; a flattened text appearance is only trustworthy if the fonts referenced by its `Tf` operators are still resolvable in the final PDF.
+
+## 2026-05-14T21:48:37Z — Appearance Resource Regression Complete
+
+**Team Outcome:**
+- **Zelda** repaired broken appearance font resources in the flattening engine.
+- **Scribe** merged decisions and logged orchestration for the session.
+
+**Session Result:**
+All 15 regression tests passing. The test suite now includes `AppearanceResourceRegressionTests` asserting that every font named by a `Tf` operator in a flattened appearance XObject remains resolvable from that XObject or page `/Resources`. Real-world PDF validation confirms the library correctly renders field values in flattened output.
