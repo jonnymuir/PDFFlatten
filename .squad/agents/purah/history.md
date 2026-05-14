@@ -77,3 +77,25 @@ API is stable for the foreseeable future. Future enhancements (e.g., field value
 - Robbie validates end-to-end with real fixture; integration tests ensure command-line contract holds.
 - Orchestration log: `.squad/orchestration-log/2026-05-14T21:22:32Z-Purah.md`.
 
+### 2026-05-14T22:33:44.877+01:00 — Downloads-based sample run verified
+
+**Context:** Jonny moved the real-world PDF into `~/Downloads` and wanted the sample app run there so the flattened result could be tested from a phone.
+
+**Work completed:**
+- Resolved the hinted filename `BAPSL_P60_Populated.pd` to the single clear Downloads match `BAPSL_P60_Populated.pdf`.
+- Ran `dotnet restore`, `dotnet build PDFFlatten.sln --configuration Release`, and `dotnet test PDFFlatten.sln --configuration Release` successfully before executing the sample.
+- Executed the VB.NET console sample against the Downloads PDF and produced `~/Downloads/flattened.pdf`.
+
+**Runtime note:** The current local smoke-test path is portable and straightforward on macOS: keep the reusable library at `netstandard2.0`, but run the sample through the installed `dotnet` SDK as a `net8.0` console app when validating a user-supplied PDF outside the repo.
+
+### 2026-05-14T22:33:44.877+01:00 — Sample run orchestration complete
+
+**Session:** Scribe orchestration for Zelda & Purah spawn manifest
+
+**Work completed:**
+- Downloaded PDF (`BAPSL_P60_Populated.pdf`) successfully flattened via console sample to `~/Downloads/flattened.pdf`.
+- All builds and tests clean (13/13 regression suite passing).
+- Orchestration log: `.squad/orchestration-log/purah-2026-05-14.log`.
+- Sample end-to-end workflow documented and locked.
+
+**Status:** Console sample is a stable, repeatable tool for testing the library against real user PDFs on the developer's machine. API remains unchanged.

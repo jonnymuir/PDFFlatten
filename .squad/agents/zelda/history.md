@@ -26,3 +26,17 @@ Built the engine that Purah's API wraps. Implemented xref table parsing, widget 
 
 **Next for Zelda:**
 Core path is stable. Future enhancements can extend (incremental stream parsing, field value rendering, edge case PDFs) without breaking the working implementation. Edge cases and performance are secondary priorities.
+
+- 2026-05-14T22:30:41.645+01:00 — Replaced the missing sensitive fixture with `GenericAcroFormFixture.pdf`, a synthetic one-page AcroForm PDF whose widgets embed `/T`, `/V`, and `/AP /N` data directly so current characterization and flattening tests stay meaningful.
+- 2026-05-14T22:30:41.645+01:00 — The generic fixture intentionally stays within the current supported parser slice: classic xref table PDFs, direct page annotation arrays, and reusable normal appearance streams for each widget.
+
+### 2026-05-14T22:33:44.877+01:00 — Fixture replacement & tests validated
+
+**Session:** Scribe orchestration for Zelda & Purah spawn manifest
+
+**Work completed:**
+- Fixture replacement work (`GenericAcroFormFixture.pdf`) and test updates verified to pass regression suite cleanly (13/13 tests).
+- Decision recorded in `.squad/decisions/inbox/zelda-generic-fixture.md` (merged into decisions.md by Scribe).
+- Orchestration log: `.squad/orchestration-log/zelda-2026-05-14.log`.
+
+**Status:** All fixture-replacement work complete and validated. Library engine remains stable.

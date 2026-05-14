@@ -34,6 +34,10 @@
 - 2026-05-14T22:18:01.321+01:00 — Add a minimal VB.NET console sample at `samples/PDFFlatten.Sample` targeting `net8.0`, reference the `src/PDFFlatten` library project directly, and keep the library API unchanged by calling `PdfFlattener.Flatten(input, output)`. Targeting `net8.0` is straightforward to run locally with the current `dotnet` CLI on macOS; VB.NET mirrors the library's intended usage style; project reference keeps the sample honest against in-repo library.
 - 2026-05-14T22:18:01.321+01:00 — Console sample workflow is a simple two-argument contract: `input.pdf output.pdf`, with non-zero exit and usage text for bad invocation. Keep the real fixture `BAPSL_P60_Populated.pdf` as proof path; flattened output must have no `/AcroForm` or widget annotations left. Lock command-line behavior with automated integration coverage.
 
+### Zelda & Robbie (Fixture Replacement)
+- 2026-05-14T22:30:41.645+01:00 — Replace the removed sensitive regression PDF with `GenericAcroFormFixture.pdf`, a checked-in synthetic one-page AcroForm sample at the repo root. Fixture scope is narrowly aligned to the current flattening contract: classic xref table, direct page `/Annots`, widget annotations that carry `/T` and `/V`, and normal appearance streams at `/AP /N`. This proves the existing flattening path without reintroducing sensitive content.
+- 2026-05-14T22:30:41.645+01:00 — Active tests and README examples depend on the generic `GenericAcroFormFixture.pdf` sample only for structural behavior: it must be a valid populated AcroForm PDF with known generic field/value pairs and normal appearance streams; flattening it must remove `/AcroForm`, remove widget annotations, and emit one appearance draw per field. This keeps regression coverage meaningful without baking business-specific data into active quality gates.
+
 ## Governance
 
 - All meaningful changes require team consensus
