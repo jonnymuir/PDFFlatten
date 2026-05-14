@@ -59,3 +59,21 @@ Locked down the public surface: `PdfFlattener.Flatten(Stream)` contract, output-
 
 **Next for Purah:**
 API is stable for the foreseeable future. Future enhancements (e.g., field value rendering, edge case modes) can evolve behind this interface without breaking consumers.
+
+### 2026-05-14T22:18:01.321+01:00 — Console sample added
+
+**Context:** Jonny wanted a local command-line sample that exercises the library against the PDF already in the repo.
+
+**Work completed:**
+- Added `samples/PDFFlatten.Sample`, a minimal VB.NET `net8.0` console app wired into `PDFFlatten.sln`.
+- Implemented two-argument CLI handling (`input-file`, `output-file`) that calls `PdfFlattener.Flatten(input, output)` without changing the public API.
+- Updated `README.md` with a direct `dotnet run --project ...` example for `BAPSL_P60_Populated.pdf`.
+
+**Takeaway:** For portability-first libraries, keep runnable examples on a modern executable target like `net8.0` while leaving the reusable library on `netstandard2.0`; that gives a friction-free local smoke-test path without sacrificing package reach.
+
+**Decision Merge (2026-05-14T21:22:32Z):**
+- Scribe archived Purah's console sample decision into `decisions.md`.
+- Console sample decision locked: add `samples/PDFFlatten.Sample` (VB.NET, net8.0), target two-argument CLI (`input.pdf output.pdf`), call `PdfFlattener.Flatten(input, output)`.
+- Robbie validates end-to-end with real fixture; integration tests ensure command-line contract holds.
+- Orchestration log: `.squad/orchestration-log/2026-05-14T21:22:32Z-Purah.md`.
+
