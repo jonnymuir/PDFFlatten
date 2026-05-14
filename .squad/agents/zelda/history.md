@@ -52,3 +52,15 @@ Core path is stable. Future enhancements can extend (incremental stream parsing,
 
 **Session Result:**
 All 15 regression tests passing. The flattening engine now repairs broken appearance font resources before reusing appearances, ensuring visible text in flattened PDFs even when source widget appearances have orphaned font references. Real-world PDF validation (`/Users/jonnymuir/Downloads/flattened.pdf`) confirms field values render correctly after flattening.
+
+- 2026-05-14T23:04:38.903+01:00 — Production-readiness audit verdict: current safety claims must stay narrow. The engine is structurally limited to classic xref-table AcroForm PDFs with usable `/AP /N` streams; it is not broad-PDF safe.
+- 2026-05-14T23:04:38.903+01:00 — Concrete audit probes showed hard failures for indirect `/Annots`, missing page `/Contents`, checkbox/radio-style `/AP /N` state dictionaries, and incremental-update files; a crafted inherited-resource case showed flattening can inject a direct page `/Resources` dictionary that shadows inherited fonts and risks breaking existing page content.
+- 2026-05-14T23:04:38.903+01:00 — Another crafted audit case showed `FldFlat###` resource naming is not collision-safe: if the page already has `/XObject /FldFlat001`, flattening overwrites that resource and can change pre-existing page graphics unrelated to the form field.
+
+**2026-05-14T23:04:38Z — Post-Release Audit & Production-Readiness Judgment (Scribe Processing)**
+- Production-readiness audit verdict recorded in `decisions.md`: narrow-slice only, not safe for arbitrary PDFs
+- Identified major structural and silent-misrendering risks; recommended strict reject-guards plus render-level corpus testing
+- Orchestration log: `.squad/orchestration-log/zelda-2026-05-14T23-04-38Z.md`
+- Key findings: narrow parser (no xref-stream, object-stream, `/Prev` chain), specific widget model, corruption/mis-render risks (inherited `/Resources` override, ASCII-only serialization), narrow verification depth
+- Highest-risk failure modes: rotated/transformed page rendering, inherited resource override, common real-world forms failing, text/font issues, incomplete output, non-ASCII mangling, signed/encrypted unsafety
+- Minimum guardrails recommended before broader production claim: documentation, runtime fail-closed checks, correctness verification, producer-diverse corpus with render-diff validation

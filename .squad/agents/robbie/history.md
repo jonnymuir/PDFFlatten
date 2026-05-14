@@ -77,3 +77,27 @@ The active suite now depends on a generic populated AcroForm sample and proves t
 
 **Session Result:**
 All 15 regression tests passing. The test suite now includes `AppearanceResourceRegressionTests` asserting that every font named by a `Tf` operator in a flattened appearance XObject remains resolvable from that XObject or page `/Resources`. Real-world PDF validation confirms the library correctly renders field values in flattened output.
+
+## 2026-05-14T23:04:38.903+01:00 — Production readiness audit
+
+**What I checked:**
+- Reviewed the README promises, sample path, current NUnit suite, synthetic fixtures, parser, serializer, and flattening code paths.
+- Ran the full repository test suite to confirm the current baseline before judging confidence.
+- Mapped what the suite proves versus the PDF structures the engine explicitly assumes away.
+
+**Outcome:**
+- All 15 tests pass, but they only justify confidence in a narrow happy path: classic-xref AcroForm PDFs with direct annotation arrays, simple appearance streams, and the checked-in synthetic fixture/sample flow.
+- The biggest unguarded failure surface is unsupported-but-valid PDF structure: xref streams/object streams, indirect stream lengths, inherited page resources/rotation, indirect `/Annots`, appearance-state widgets, incremental updates, and field-hierarchy inheritance.
+- Production claim for arbitrary PDFs would be overconfident; current evidence supports controlled-input usage, not “throw anything at it.”
+
+**Learning:**
+- For PDF flattening, structural success (`/AcroForm` gone, widgets gone, `/Do` commands present) is a weak proxy. Production confidence needs fixtures for valid-but-different PDF structures and at least one visibility-preservation check per risk class.
+
+
+**2026-05-14T23:04:38Z — Post-Release Audit & Coverage Readiness Judgment (Scribe Processing)**
+- Coverage audit verdict recorded in `decisions.md`: current 15-test suite proves narrow path only; major real-world failure surfaces remain unguarded
+- Test decision: before broad production claim, add fixtures for xref-stream rejection, indirect `/Length`, inherited page resources, indirect `/Annots`, checkbox/radio widgets, rotated pages, incremental-update, field hierarchy, multi-filter appearance streams
+- Orchestration log: `.squad/orchestration-log/robbie-2026-05-14T23-04-38Z.md`
+- Protected today: API contract, null handling, stream ownership, no-op for plain PDFs, `/AcroForm`/annotation removal, non-widget annotation preservation, one appearance per field, CLI sample, text font repair for synthetic case
+- High-risk unprotected: xref/object-stream PDFs untested, indirect `/Length` untested, inherited page attributes assumed away, indirect `/Annots` untested, state-driven appearances untested, page rotation/appearance `/Matrix` untested, incremental-update untested, field hierarchy untested, multi-filter streams untested, no render-level assertions
+- Recommendation: add renderability checks per risk bucket so "widgets removed" cannot masquerade as "content preserved"
