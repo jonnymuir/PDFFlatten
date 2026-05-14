@@ -1,0 +1,54 @@
+Scribe Health Report
+====================
+
+Session: 2026-05-14T21:22:32Z
+Task: Process console sample decisions and update team history
+
+Decisions.md Metrics
+--------------------
+Before size:  4081 bytes
+After size:   4955 bytes
+Delta:        +874 bytes (21.4% increase)
+Archive check: No archival needed (before < 20480 bytes threshold)
+
+Inbox Processing
+----------------
+Files processed:  2
+- purah-console-sample.md (merged, deleted)
+- robbie-console-sample.md (merged, deleted)
+
+Deduplication: No duplicates found
+
+History File Sizes
+------------------
+.squad/agents/purah/history.md:   4911 bytes (no summarization needed)
+.squad/agents/robbie/history.md:  2882 bytes (no summarization needed)
+(Threshold: 15360 bytes)
+
+Orchestration Logs
+------------------
+Created: .squad/orchestration-log/2026-05-14T21:22:32Z-Purah.md
+Created: .squad/orchestration-log/2026-05-14T21:22:32Z-Robbie.md
+Status: Ignored (these are not staged/committed per task design)
+
+Session Log
+-----------
+Created: .squad/log/2026-05-14T21:22:32Z-console-sample.md
+Status: Ignored (per .gitignore)
+
+Git Commit
+----------
+Commit: 72123c2 (main branch)
+Files staged: 3
+- .squad/decisions.md
+- .squad/agents/purah/history.md
+- .squad/agents/robbie/history.md
+
+Message: Scribe: Merge console sample decisions and update agent histories
+
+Cross-Agent Context
+-------------------
+Updated Purah history with decision merge entry and cross-team context
+Updated Robbie history with decision merge entry and cross-team context
+
+Status: ✓ All tasks completed successfully

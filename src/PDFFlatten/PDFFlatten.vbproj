@@ -1,0 +1,31 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>netstandard2.0</TargetFramework>
+    <AssemblyName>PDFFlatten</AssemblyName>
+    <RootNamespace>PDFFlatten</RootNamespace>
+    <OptionExplicit>On</OptionExplicit>
+    <OptionStrict>On</OptionStrict>
+    <OptionInfer>On</OptionInfer>
+    <Description>Small, dependency-free AcroForm flattening for classic PDF files.</Description>
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
+    <PackageId>PDFFlatten</PackageId>
+    <PackageProjectUrl>https://github.com/jonnymuir/PDFFlatten</PackageProjectUrl>
+    <RepositoryUrl>https://github.com/jonnymuir/PDFFlatten</RepositoryUrl>
+    <RepositoryType>git</RepositoryType>
+    <PackageTags>pdf;acroform;flatten;forms</PackageTags>
+    <PackageReadmeFile>README.md</PackageReadmeFile>
+    <PackageLicenseExpression>MIT</PackageLicenseExpression>
+    <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
+    <PackageReleaseNotes>Initial in-house stream-based AcroForm flattening release.</PackageReleaseNotes>
+    <EmbedUntrackedSources>true</EmbedUntrackedSources>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Microsoft.SourceLink.GitHub" Version="8.0.0" PrivateAssets="All" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Include="../../README.md" Pack="true" PackagePath="\" Link="README.md" />
+  </ItemGroup>
+</Project>

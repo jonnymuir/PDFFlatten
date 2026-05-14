@@ -1,0 +1,57 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+
+      - name: Resolve version
+        shell: bash
+        run: |
+          echo "PACKAGE_VERSION=${GITHUB_REF_NAME#v}" >> "$GITHUB_ENV"
+          echo "RELEASE_TAG=${GITHUB_REF_NAME}" >> "$GITHUB_ENV"
+
+      - name: Restore
+        run: dotnet restore PDFFlatten.sln
+
+      - name: Build
+        run: dotnet build PDFFlatten.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test PDFFlatten.sln --configuration Release --no-build
+
+      - name: Pack
+        run: dotnet pack src/PDFFlatten/PDFFlatten.vbproj --configuration Release --no-build -p:PackageVersion=${{ env.PACKAGE_VERSION }} --output artifacts
+
+      - name: Create GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release create "${{ env.RELEASE_TAG }}" artifacts/*.nupkg artifacts/*.snupkg --generate-notes --title "PDFFlatten ${{ env.PACKAGE_VERSION }}"
+
+      - name: Publish to NuGet
+        run: |
+          dotnet nuget push 'artifacts/*.nupkg' \
+            --api-key '${{ secrets.NUGET_API_KEY }}' \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate
+          dotnet nuget push 'artifacts/*.snupkg' \
+            --api-key '${{ secrets.NUGET_API_KEY }}' \
+            --source https://api.nuget.org/v3/index.json \
+            --skip-duplicate

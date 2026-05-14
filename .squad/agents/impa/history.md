@@ -30,3 +30,4 @@ Transformed the squad's work into a ship-ready GitHub repository: productization
 
 **Next for Impa:**
 Repository is ready for team review and future feature work. Release automation can be tested via GitHub environment if NuGet API key is set.
+- 2026-05-14T22:26:30.112+01:00 — Canonical GitHub remote for this repo is `https://github.com/jonnymuir/PDFFlatten.git` on branch `main`; publishing should use that origin directly. Baseline `dotnet test` currently fails because the expected root fixture `BAPSL_P60_Populated.pdf` is absent from the working tree.

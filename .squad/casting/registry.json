@@ -1,0 +1,32 @@
+{
+  "agents": {
+    "impa": {
+      "persistent_name": "Impa",
+      "universe": "The Legend of Zelda",
+      "created_at": "2026-05-14T21:16:50.701+01:00",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "purah": {
+      "persistent_name": "Purah",
+      "universe": "The Legend of Zelda",
+      "created_at": "2026-05-14T21:16:50.701+01:00",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "zelda": {
+      "persistent_name": "Zelda",
+      "universe": "The Legend of Zelda",
+      "created_at": "2026-05-14T21:16:50.701+01:00",
+      "legacy_named": false,
+      "status": "active"
+    },
+    "robbie": {
+      "persistent_name": "Robbie",
+      "universe": "The Legend of Zelda",
+      "created_at": "2026-05-14T21:16:50.701+01:00",
+      "legacy_named": false,
+      "status": "active"
+    }
+  }
+}

@@ -1,0 +1,63 @@
+=== SCRIBE HEALTH REPORT ===
+Session: 2026-05-14T21:39:55Z
+
+PRE-CHECK
+---------
+decisions.md size:     1,234 bytes (before)
+inbox/ file count:     7 files
+
+DECISIONS ARCHIVE [HARD GATE]
+------------------------------
+No archiving triggered: 1,234 bytes < 20,480 byte threshold
+
+DECISION INBOX MERGE
+--------------------
+Merged:    7 decision entries from inbox/ → decisions.md
+Deleted:   7 inbox files
+Action:    Deduplicated by agent and decision content
+Result:    decisions.md now 4,571 bytes (after)
+
+ORCHESTRATION LOGS
+------------------
+Created:   4 orchestration logs
+- .squad/orchestration-log/2026-05-14T20-39-55Z-impa.md (721 bytes)
+- .squad/orchestration-log/2026-05-14T20-39-55Z-purah.md (761 bytes)
+- .squad/orchestration-log/2026-05-14T20-39-55Z-zelda.md (996 bytes)
+- .squad/orchestration-log/2026-05-14T20-39-55Z-robbie.md (904 bytes)
+Status:    ✓ Not staged (gitignored)
+
+SESSION LOG
+-----------
+Created:   .squad/log/2026-05-14T21-39-55Z-pdfflatten-team.md (1,077 bytes)
+Status:    ✓ Not staged (gitignored)
+
+CROSS-AGENT HISTORY UPDATES
+---------------------------
+Updated:   4 agent history files with team context
+- .squad/agents/impa/history.md:    +534 bytes (staged)
+- .squad/agents/purah/history.md:   +684 bytes (staged)
+- .squad/agents/zelda/history.md:   +611 bytes (staged)
+- .squad/agents/robbie/history.md:  +598 bytes (staged)
+
+HISTORY SUMMARIZATION [HARD GATE]
+----------------------------------
+impa:       2,015 bytes (< 15,360 threshold) — no action
+purah:      3,482 bytes (< 15,360 threshold) — no action
+zelda:      1,522 bytes (< 15,360 threshold) — no action
+robbie:     1,387 bytes (< 15,360 threshold) — no action
+Status:     ✓ All clear, no summarization needed
+
+GIT COMMIT
+----------
+Staged:     5 .squad/ files (decisions.md + 4 agent histories)
+Skipped:    orchestration-log/ and log/ (gitignored)
+Commit:     9b73839 "Scribe: Merge batch decisions and team orchestration logs"
+Status:     ✓ Complete
+
+SUMMARY
+-------
+✓ All tasks completed
+✓ No hard gates triggered (archiving, summarization)
+✓ Team memory preserved: decisions merged, cross-agent context shared, histories updated
+✓ Session artifacts created (not staged, per gitignore)
+✓ Git record written
