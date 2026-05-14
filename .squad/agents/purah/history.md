@@ -35,3 +35,27 @@
 - Scribe merged this decision into `decisions.md` alongside Impa's project-structure decision.
 - Orchestration log created: `.squad/orchestration-log/2026-05-14T20-25-31-Purah.md`.
 - Next: Impa and downstream agents now have the portable target confirmed. PDF library selection remains deferred.
+
+### 2026-05-14T21:39:55.268+01:00 — Public package/API landed
+
+**Context:** Jonny wanted PDFFlatten turned into a GitHub-ready NuGet library with a real first public API, tests, docs, and CI while keeping implementation in-house.
+
+**Work completed:**
+- Replaced the abstraction-only starting point with `PdfFlattener.Flatten(Stream)` plus an output-stream overload.
+- Added a netstandard2.0 in-house PDF parser/rewriter that flattens widget appearances back onto page content for the included sample form.
+- Upgraded the project for NuGet packaging, SourceLink, XML docs, README packaging, NUnit tests, and GitHub Actions CI/CD.
+
+**Takeaway:** For portability-first PDF utilities, keep the public API tiny and move PDF complexity behind internal seams so runtime/package decisions stay stable even if the implementation deepens.
+
+## 2026-05-14T21:39:55Z — Team Batch Complete
+
+**Peer Outcomes:**
+- **Impa:** Repo productization complete (GitHub docs, workflows, SourceLink, release automation).
+- **Zelda:** In-house PDF flattening engine live; widget appearance reuse; orphan pruning; edge cases documented.
+- **Robbie:** 11 passing regression tests; `BAPSL_P60_Populated.pdf` fixture assertions; macOS-safe CI.
+
+**Purah's Role in Batch:**
+Locked down the public surface: `PdfFlattener.Flatten(Stream)` contract, output-stream overload, package metadata. This stable API shields Zelda's implementation from thrashing and allows Robbie to write lasting tests.
+
+**Next for Purah:**
+API is stable for the foreseeable future. Future enhancements (e.g., field value rendering, edge case modes) can evolve behind this interface without breaking consumers.

@@ -16,3 +16,17 @@
 - Scribe merged Impa's project-structure decision into `decisions.md` alongside Purah's portable-target analysis.
 - Orchestration log created: `.squad/orchestration-log/2026-05-14T20-25-31-Impa.md`.
 - Both Purah and Impa decisions now in team record. Squad is ready for PDF library selection and implementation work.
+- 2026-05-14T21:39:55.268+01:00 — Productized the repo for GitHub/NuGet: polished README, added GitHub setup docs, changelog/contributing scaffolds, CI and tag-driven release workflows, SourceLink/symbol packaging, and validated build/test/pack locally.
+
+## 2026-05-14T21:39:55Z — Team Batch Complete
+
+**Peer Outcomes:**
+- **Purah:** Delivered `PdfFlattener.Flatten(Stream)` + overload, package metadata, MIT licence, successful NuGet build.
+- **Zelda:** Implemented in-house PDF parser/serializer; widget appearance reuse strategy; orphan object pruning; functional flattening path.
+- **Robbie:** 11 passing NUnit tests; fixture-backed regression suite; macOS-safe CI; reflection-based contract assertions.
+
+**Impa's Role in Batch:**
+Transformed the squad's work into a ship-ready GitHub repository: productization docs, GitHub Actions CI (build/test/pack), tag-driven release workflow, hygiene files (CHANGELOG, CONTRIBUTING, MIT), SourceLink/symbol guidance, and validated end-to-end locally.
+
+**Next for Impa:**
+Repository is ready for team review and future feature work. Release automation can be tested via GitHub environment if NuGet API key is set.
