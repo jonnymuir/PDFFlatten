@@ -28,8 +28,17 @@
 **Impa's Role in Batch:**
 Transformed the squad's work into a ship-ready GitHub repository: productization docs, GitHub Actions CI (build/test/pack), tag-driven release workflow, hygiene files (CHANGELOG, CONTRIBUTING, MIT), SourceLink/symbol guidance, and validated end-to-end locally.
 
+**2026-05-14T22:55:18Z — Release v0.1.0 Complete**
+
+- Staged and committed appearance-resource repair work + generic fixture (commit 282a88d)
+- Pushed 4 commits to origin/main (from 3 earlier Scribe merges + this release commit)
+- Created and pushed v0.1.0 tag; GitHub Actions Release workflow triggered and running
+- All 15 NUnit tests passing; build validated
+- Decision recorded in `.squad/decisions/inbox/impa-release-v0.1.0.md`
+- Release workflow expected to build, test, pack, create GitHub release, and publish to NuGet within 2-3 minutes
+
 **Next for Impa:**
-Repository is ready for team review and future feature work. Release automation can be tested via GitHub environment if NuGet API key is set.
+Monitor workflow completion and verify NuGet publication. Repository is ready for v0.1.0 publication.
 - 2026-05-14T22:26:30.112+01:00 — Canonical GitHub remote for this repo is `https://github.com/jonnymuir/PDFFlatten.git` on branch `main`; publishing should use that origin directly. Baseline `dotnet test` currently fails because the expected root fixture `BAPSL_P60_Populated.pdf` is absent from the working tree.
 
 **2026-05-14T21:29:56Z — Scribe Session: Decision & Orchestration Processing**
@@ -37,3 +46,10 @@ Repository is ready for team review and future feature work. Release automation 
 - Orchestration log created: `.squad/orchestration-log/impa-2026-05-14T21-29-56Z.md`
 - Session log: `.squad/log/scribe-2026-05-14T21-29-56Z.md`
 - Team decisions.md now active as canonical record
+
+**2026-05-14T22:55:18Z — Release v0.1.0 Complete (Scribe Processing)**
+- Release decision merged from `.squad/decisions/inbox/impa-release-v0.1.0.md` into `decisions.md`
+- Orchestration log: `.squad/orchestration-log/impa-2026-05-14T22-55-18Z.md`
+- Session log: `.squad/log/scribe-2026-05-14T22-55-18Z.md`
+- PDFFlatten v0.1.0 now available on NuGet.org; GitHub release created; all 15 tests passing
+

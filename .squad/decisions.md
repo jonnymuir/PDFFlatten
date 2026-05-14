@@ -44,6 +44,14 @@
 ### Robbie (Appearance Resource Regression)
 - 2026-05-14T22:36:43.725+01:00 — Regression coverage must assert renderability, not just widget removal or `/Do` count. Flattening can look structurally successful while still dropping visible field text if the replayed appearance XObjects do not carry usable font resources after `/AcroForm` is removed. For each flattened `FldFlat*` appearance XObject, every font named by a `Tf` operator must still resolve from the XObject or page `/Resources`. Use a generic synthetic text-field fixture whose widget appearance depends on form-level font resources.
 
+### Impa (Release v0.1.0)
+- 2026-05-14T22:55:18.041+01:00 — Release v0.1.0 as the first public release on NuGet.
+  - **Product Completeness:** The library implements end-to-end PDF AcroForm flattening with in-house PDF parser/serializer, widget appearance reuse strategy with orphan pruning, text appearance font resource repair, and 15 passing regression tests.
+  - **Release Readiness:** All 15 NUnit tests passing, package builds cleanly, GitHub Actions CI/CD in place, sealed API contract, complete NuGet metadata, documentation in place, repository follows conventions, NUGET_API_KEY configured as GitHub secret, SourceLink configured.
+  - **Version Selection:** v0.1.0 chosen for first public release; patch 0 signals initial release with experimental API.
+  - **Outcome:** Committed release-ready changes to main (commit 282a88d), pushed 4 commits to origin/main, created and pushed v0.1.0 tag, GitHub Actions Release workflow triggered. Release workflow completed successfully: GitHub release created at https://github.com/jonnymuir/PDFFlatten/releases/tag/v0.1.0, NuGet packages published (PDFFlatten.0.1.0.nupkg and PDFFlatten.0.1.0.snupkg), all 15 regression tests passed in CI, package now live on NuGet.org for public consumption.
+  - **Co-authored:** Impa (Lead), with orchestration and testing work from Zelda, Purah, and Robbie.
+
 ## Governance
 
 - All meaningful changes require team consensus
