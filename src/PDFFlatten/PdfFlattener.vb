@@ -2,13 +2,17 @@ Imports System
 Imports System.Collections.Generic
 Imports System.Globalization
 Imports System.IO
+Imports System.IO.Compression
 Imports System.Text
+Imports System.Text.RegularExpressions
 Imports PDFFlatten.Internals
 
 ''' <summary>
 ''' Flattens AcroForm widget appearances into page content streams.
 ''' </summary>
 Public NotInheritable Class PdfFlattener
+    Private Shared ReadOnly FontOperatorRegex As New Regex("/(?<font>[^\s/]+)\s+[-+]?(?:\d+(?:\.\d+)?|\.\d+)\s+Tf", RegexOptions.CultureInvariant)
+
     Private Sub New()
     End Sub
 
@@ -169,6 +173,7 @@ Public NotInheritable Class PdfFlattener
         Dim appearanceDictionary As PdfDictionary = annotation.RequireDictionary("AP")
         Dim normalAppearanceRef As PdfIndirectReference = appearanceDictionary.RequireReference("N")
         Dim normalAppearance As PdfStream = document.GetRequiredStream(normalAppearanceRef)
+        RepairTextAppearanceResources(document, annotation, normalAppearance)
         Dim box As PdfArray = normalAppearance.Dictionary.RequireArray("BBox")
         If box.Items.Count <> 4 Then
             Throw New NotSupportedException("Appearance BBoxes must contain four numbers.")
@@ -201,6 +206,251 @@ Public NotInheritable Class PdfFlattener
             scaleY,
             left - (boxLeft * scaleX),
             bottom - (boxBottom * scaleY))
+    End Function
+
+    Private Shared Sub RepairTextAppearanceResources(document As PdfDocument, annotation As PdfDictionary, appearance As PdfStream)
+        If Not IsTextField(annotation) Then
+            Return
+        End If
+
+        Dim referencedFonts As List(Of String) = GetReferencedFontNames(appearance)
+        If referencedFonts.Count = 0 Then
+            Return
+        End If
+
+        Dim resources As PdfDictionary = ResolveOrCreateNestedDictionary(document, appearance.Dictionary, "Resources")
+        Dim fonts As PdfDictionary = ResolveOrCreateNestedDictionary(document, resources, "Font")
+
+        For Each fontName As String In referencedFonts
+            If HasResolvableFont(document, fonts, fontName) Then
+                Continue For
+            End If
+
+            Dim repairedFont As PdfValue = Nothing
+            If TryResolveWidgetDefaultFont(document, annotation, repairedFont) Then
+                fonts(fontName) = repairedFont
+                Continue For
+            End If
+
+            Dim standardFont As PdfDictionary = CreateStandardFont(fontName)
+            If standardFont IsNot Nothing Then
+                fonts(fontName) = document.AddObject(standardFont)
+            End If
+        Next
+    End Sub
+
+    Private Shared Function IsTextField(annotation As PdfDictionary) As Boolean
+        Dim fieldType As PdfValue = Nothing
+        If Not annotation.TryGetValue("FT", fieldType) Then
+            Return False
+        End If
+
+        Dim fieldTypeName As PdfName = TryCast(fieldType, PdfName)
+        Return fieldTypeName IsNot Nothing AndAlso String.Equals(fieldTypeName.Value, "Tx", StringComparison.Ordinal)
+    End Function
+
+    Private Shared Function GetReferencedFontNames(appearance As PdfStream) As List(Of String)
+        Dim decodedData As Byte() = DecodeStreamData(appearance)
+        If decodedData Is Nothing OrElse decodedData.Length = 0 Then
+            Return New List(Of String)()
+        End If
+
+        Dim content As String = Encoding.ASCII.GetString(decodedData)
+        Dim fontNames As New List(Of String)()
+        Dim seen As New HashSet(Of String)(StringComparer.Ordinal)
+
+        For Each match As Match In FontOperatorRegex.Matches(content)
+            Dim fontName As String = match.Groups("font").Value
+            If fontName.Length > 0 AndAlso seen.Add(fontName) Then
+                fontNames.Add(fontName)
+            End If
+        Next
+
+        Return fontNames
+    End Function
+
+    Private Shared Function DecodeStreamData(appearance As PdfStream) As Byte()
+        Dim filterValue As PdfValue = Nothing
+        If Not appearance.Dictionary.TryGetValue("Filter", filterValue) Then
+            Return appearance.Data
+        End If
+
+        Dim filterName As PdfName = TryCast(filterValue, PdfName)
+        If filterName Is Nothing OrElse Not String.Equals(filterName.Value, "FlateDecode", StringComparison.Ordinal) Then
+            Return Nothing
+        End If
+
+        Try
+            Return InflateData(appearance.Data)
+        Catch ex As InvalidDataException
+            If appearance.Data.Length <= 6 Then
+                Return Nothing
+            End If
+
+            Dim rawDeflate(appearance.Data.Length - 7) As Byte
+            Array.Copy(appearance.Data, 2, rawDeflate, 0, rawDeflate.Length)
+
+            Try
+                Return InflateData(rawDeflate)
+            Catch innerEx As InvalidDataException
+                Return Nothing
+            End Try
+        End Try
+    End Function
+
+    Private Shared Function InflateData(data As Byte()) As Byte()
+        Using input As New MemoryStream(data)
+            Using inflater As New DeflateStream(input, CompressionMode.Decompress)
+                Using output As New MemoryStream()
+                    inflater.CopyTo(output)
+                    Return output.ToArray()
+                End Using
+            End Using
+        End Using
+    End Function
+
+    Private Shared Function HasResolvableFont(document As PdfDocument, fontDictionary As PdfDictionary, fontName As String) As Boolean
+        Dim fontValue As PdfValue = Nothing
+        If Not fontDictionary.TryGetValue(fontName, fontValue) Then
+            Return False
+        End If
+
+        If TypeOf fontValue Is PdfDictionary Then
+            Return True
+        End If
+
+        Dim fontReference As PdfIndirectReference = TryCast(fontValue, PdfIndirectReference)
+        If fontReference Is Nothing Then
+            Return False
+        End If
+
+        Try
+            document.GetRequiredDictionary(fontReference)
+            Return True
+        Catch ex As InvalidOperationException
+            Return False
+        End Try
+    End Function
+
+    Private Shared Function TryResolveWidgetDefaultFont(document As PdfDocument, annotation As PdfDictionary, ByRef fontValue As PdfValue) As Boolean
+        fontValue = Nothing
+
+        Dim defaultAppearance As String = Nothing
+        If Not TryGetLiteralString(annotation, "DA", defaultAppearance) Then
+            Return False
+        End If
+
+        Dim match As Match = FontOperatorRegex.Match(defaultAppearance)
+        If Not match.Success Then
+            Return False
+        End If
+
+        Dim widgetResources As PdfDictionary = TryResolveDictionary(document, annotation, "DR")
+        If widgetResources Is Nothing Then
+            Return False
+        End If
+
+        Dim widgetFonts As PdfDictionary = TryResolveNestedDictionary(document, widgetResources, "Font")
+        If widgetFonts Is Nothing Then
+            Return False
+        End If
+
+        Return widgetFonts.TryGetValue(match.Groups("font").Value, fontValue) AndAlso fontValue IsNot Nothing
+    End Function
+
+    Private Shared Function TryResolveDictionary(document As PdfDocument, parent As PdfDictionary, key As String) As PdfDictionary
+        Dim value As PdfValue = Nothing
+        If Not parent.TryGetValue(key, value) Then
+            Return Nothing
+        End If
+
+        Dim reference As PdfIndirectReference = TryCast(value, PdfIndirectReference)
+        If reference IsNot Nothing Then
+            Try
+                Return document.GetRequiredDictionary(reference)
+            Catch ex As InvalidOperationException
+                Return Nothing
+            End Try
+        End If
+
+        Return TryCast(value, PdfDictionary)
+    End Function
+
+    Private Shared Function ResolveOrCreateNestedDictionary(document As PdfDocument, parent As PdfDictionary, key As String) As PdfDictionary
+        Dim existing As PdfDictionary = TryResolveDictionary(document, parent, key)
+        If existing IsNot Nothing Then
+            Return existing
+        End If
+
+        Dim created As New PdfDictionary()
+        parent(key) = created
+        Return created
+    End Function
+
+    Private Shared Function TryResolveNestedDictionary(document As PdfDocument, parent As PdfDictionary, key As String) As PdfDictionary
+        Return TryResolveDictionary(document, parent, key)
+    End Function
+
+    Private Shared Function TryGetLiteralString(dictionary As PdfDictionary, key As String, ByRef value As String) As Boolean
+        value = Nothing
+
+        Dim rawValue As PdfValue = Nothing
+        If Not dictionary.TryGetValue(key, rawValue) Then
+            Return False
+        End If
+
+        Dim literal As PdfLiteralString = TryCast(rawValue, PdfLiteralString)
+        If literal Is Nothing Then
+            Return False
+        End If
+
+        value = literal.Value
+        Return True
+    End Function
+
+    Private Shared Function CreateStandardFont(fontName As String) As PdfDictionary
+        Dim baseFontName As String = Nothing
+        Select Case fontName
+            Case "Helv"
+                baseFontName = "Helvetica"
+            Case "HeBo"
+                baseFontName = "Helvetica-Bold"
+            Case "HeOb"
+                baseFontName = "Helvetica-Oblique"
+            Case "HeBO"
+                baseFontName = "Helvetica-BoldOblique"
+            Case "Cour"
+                baseFontName = "Courier"
+            Case "CoBo"
+                baseFontName = "Courier-Bold"
+            Case "CoOb"
+                baseFontName = "Courier-Oblique"
+            Case "CoBO"
+                baseFontName = "Courier-BoldOblique"
+            Case "TiRo"
+                baseFontName = "Times-Roman"
+            Case "TiBo"
+                baseFontName = "Times-Bold"
+            Case "TiIt"
+                baseFontName = "Times-Italic"
+            Case "TiBI"
+                baseFontName = "Times-BoldItalic"
+            Case "ZaDb"
+                baseFontName = "ZapfDingbats"
+            Case Else
+                Return Nothing
+        End Select
+
+        Dim font As New PdfDictionary()
+        font("Type") = New PdfName("Font")
+        font("Subtype") = New PdfName("Type1")
+        font("BaseFont") = New PdfName(baseFontName)
+
+        If Not String.Equals(baseFontName, "ZapfDingbats", StringComparison.Ordinal) Then
+            font("Encoding") = New PdfName("WinAnsiEncoding")
+        End If
+
+        Return font
     End Function
 
     Private Shared Function ResolveResourceDictionary(document As PdfDocument, page As PdfDictionary) As PdfDictionary

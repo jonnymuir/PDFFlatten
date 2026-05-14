@@ -5,7 +5,7 @@ namespace PDFFlatten.Tests;
 public class SamplePdfCharacterizationTests
 {
     [Test]
-    public void Sample_pdf_fixture_contains_the_expected_form_fields_and_values()
+    public void Sample_pdf_fixture_contains_the_expected_generic_form_fields_and_values()
     {
         var sample = TestAssets.LoadSamplePdfProbe();
         var fieldValues = sample.ExtractFieldValues();

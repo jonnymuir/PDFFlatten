@@ -19,10 +19,10 @@ public sealed class ConsoleSampleTests
     }
 
     [Test]
-    public void Sample_console_flattens_the_real_fixture_from_command_line()
+    public void Sample_console_flattens_the_generic_fixture_from_command_line()
     {
         var outputDirectory = Path.Combine(AppContext.BaseDirectory, "sample-cli-output");
-        var outputPath = Path.Combine(outputDirectory, "BAPSL_P60_Populated.flattened.pdf");
+        var outputPath = Path.Combine(outputDirectory, "GenericAcroFormFixture.flattened.pdf");
 
         if (File.Exists(outputPath))
         {

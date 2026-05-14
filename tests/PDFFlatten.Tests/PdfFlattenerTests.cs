@@ -1,4 +1,5 @@
 using System.Text;
+using System.IO.Compression;
 using NUnit.Framework;
 using PDFFlatten;
 using PDFFlatten.Internals;
@@ -31,9 +32,9 @@ public sealed class PdfFlattenerTests
     }
 
     [Test]
-    public void Flatten_removes_acroform_and_widgets_from_sample_pdf()
+    public void Flatten_removes_acroform_and_widgets_from_generic_fixture()
     {
-        using var input = File.OpenRead(Path.Combine(AppContext.BaseDirectory, "BAPSL_P60_Populated.pdf"));
+        using var input = File.OpenRead(TestAssets.SamplePdfPath);
         using var flattened = PdfFlattener.Flatten(input);
         var document = PdfParser.Parse(ReadAllBytes(flattened));
         var catalog = document.GetRequiredDictionary(document.Trailer.RequireReference("Root"));
@@ -45,8 +46,10 @@ public sealed class PdfFlattenerTests
 
         var resources = ResolvePageResources(document, page);
         var xObjects = ResolveNestedDictionary(document, resources, "XObject");
-        Assert.That(xObjects.Items.Keys, Does.Contain("FldFlat001"));
-        Assert.That(xObjects.Items.Keys, Does.Contain("FldFlat012"));
+        var flattenedResourceNames = xObjects.Items.Keys
+            .Where(key => key.StartsWith("FldFlat", StringComparison.Ordinal))
+            .ToArray();
+        Assert.That(flattenedResourceNames, Has.Length.EqualTo(TestAssets.ExpectedFieldValues.Count));
 
         var contents = page.RequireArray("Contents");
         Assert.That(contents.Items.Count, Is.EqualTo(2));
@@ -55,8 +58,11 @@ public sealed class PdfFlattenerTests
         Assert.That(appendedRef, Is.Not.Null);
         var appendedStream = document.GetRequiredStream(appendedRef!);
         var commands = Encoding.ASCII.GetString(appendedStream.Data);
-        Assert.That(commands, Does.Contain("/FldFlat001 Do"));
-        Assert.That(commands, Does.Contain("/FldFlat012 Do"));
+        var drawOperationCount = commands
+            .Split('\n', StringSplitOptions.RemoveEmptyEntries)
+            .Count(line => line.Contains("/FldFlat", StringComparison.Ordinal) &&
+                           line.Contains(" Do", StringComparison.Ordinal));
+        Assert.That(drawOperationCount, Is.EqualTo(TestAssets.ExpectedFieldValues.Count));
     }
 
     [Test]
@@ -77,6 +83,34 @@ public sealed class PdfFlattenerTests
         Assert.That(linkRef, Is.Not.Null);
         var link = document.GetRequiredDictionary(linkRef!);
         Assert.That(link.GetNameValue("Subtype"), Is.EqualTo("Link"));
+    }
+
+    [Test]
+    public void Flatten_repairs_broken_text_appearance_font_resources()
+    {
+        using var input = new MemoryStream(SimplePdfFactory.CreateDocumentWithBrokenTextAppearanceResources());
+        using var flattened = PdfFlattener.Flatten(input);
+        var document = PdfParser.Parse(ReadAllBytes(flattened));
+        var catalog = document.GetRequiredDictionary(document.Trailer.RequireReference("Root"));
+        var page = GetFirstPage(document, catalog);
+        var resources = ResolvePageResources(document, page);
+        var xObjects = ResolveNestedDictionary(document, resources, "XObject");
+        var flattenedAppearanceRef = xObjects.Items["FldFlat001"] as PdfIndirectReference;
+
+        Assert.That(flattenedAppearanceRef, Is.Not.Null);
+
+        var flattenedAppearance = document.GetRequiredStream(flattenedAppearanceRef!);
+        var appearanceResources = ResolveNestedDictionary(document, flattenedAppearance.Dictionary, "Resources");
+        var fontResources = ResolveNestedDictionary(document, appearanceResources, "Font");
+
+        Assert.That(fontResources.Items.ContainsKey("Helv"), Is.True);
+
+        var repairedFontRef = fontResources.Items["Helv"] as PdfIndirectReference;
+        Assert.That(repairedFontRef, Is.Not.Null);
+        Assert.That(document.GetRequiredDictionary(repairedFontRef!).GetNameValue("BaseFont"), Is.EqualTo("Helvetica"));
+
+        var appearanceContent = DecompressFlate(flattenedAppearance.Data);
+        Assert.That(appearanceContent, Does.Contain("(Filled) Tj"));
     }
 
     [Test]
@@ -161,7 +195,28 @@ public sealed class PdfFlattenerTests
             });
         }
 
+        public static byte[] CreateDocumentWithBrokenTextAppearanceResources()
+        {
+            return BuildPdf(new Dictionary<int, byte[]>
+            {
+                [1] = AsciiBody("<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R]>>>>"),
+                [2] = AsciiBody("<</Type /Pages /Count 1 /Kids [3 0 R]>>"),
+                [3] = AsciiBody("<</Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources 5 0 R /Annots [6 0 R] /Contents 9 0 R>>"),
+                [5] = AsciiBody("<</Font <</He 10 0 R>> /XObject <<>>>>"),
+                [6] = AsciiBody("<</Type /Annot /Subtype /Widget /Rect [20 20 120 44] /FT /Tx /DA (/He 12 Tf 0 g) /DR <</Font 11 0 R>> /AP <</N 8 0 R>> /V (Filled)>>"),
+                [8] = CompressedRawStream("q 0 0 100 24 re W n BT /Helv 12 Tf 0 g 2 8 Td (Filled) Tj ET Q", "/Type /XObject /Subtype /Form /BBox [0 0 100 24] /Resources <</Font 253 0 R>>"),
+                [9] = AsciiBody(Stream("q Q")),
+                [10] = AsciiBody("<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>"),
+                [11] = AsciiBody("<</He 10 0 R>>")
+            });
+        }
+
         private static byte[] BuildPdf(IDictionary<int, string> bodies)
+        {
+            return BuildPdf(bodies.ToDictionary(pair => pair.Key, pair => AsciiBody(pair.Value)));
+        }
+
+        private static byte[] BuildPdf(IDictionary<int, byte[]> bodies)
         {
             using var stream = new MemoryStream();
             using var writer = new StreamWriter(stream, new UTF8Encoding(false), leaveOpen: true);
@@ -173,7 +228,10 @@ public sealed class PdfFlattenerTests
             foreach (var objectNumber in bodies.Keys.Order())
             {
                 offsets[objectNumber] = stream.Position;
-                writer.Write($"{objectNumber} 0 obj\n{bodies[objectNumber]}\nendobj\n");
+                writer.Write($"{objectNumber} 0 obj\n");
+                writer.Flush();
+                stream.Write(bodies[objectNumber], 0, bodies[objectNumber].Length);
+                writer.Write("\nendobj\n");
                 writer.Flush();
             }
 
@@ -203,7 +261,8 @@ public sealed class PdfFlattenerTests
 
         private static string Stream(string content, string? dictionaryPrefix = null)
         {
-            return CreateStreamBody(content, dictionaryPrefix is null ? string.Empty : dictionaryPrefix.Replace("<<", string.Empty).Replace(">>", string.Empty));
+            var dictionaryEntries = dictionaryPrefix is null ? string.Empty : dictionaryPrefix.Replace("<<", string.Empty).Replace(">>", string.Empty);
+            return CreateStreamBody(content, dictionaryEntries);
         }
 
         private static string CreateStreamBody(string content, string dictionaryEntries = "")
@@ -211,5 +270,42 @@ public sealed class PdfFlattenerTests
             var data = Encoding.ASCII.GetBytes(content);
             return $"<<{dictionaryEntries} /Length {data.Length} >>\nstream\n{content}\nendstream";
         }
+
+        private static byte[] AsciiBody(string content)
+        {
+            return Encoding.ASCII.GetBytes(content);
+        }
+
+        private static byte[] CompressedRawStream(string content, string dictionaryEntries)
+        {
+            var contentBytes = Encoding.ASCII.GetBytes(content);
+            var compressed = Compress(contentBytes);
+
+            using var stream = new MemoryStream();
+            stream.Write(Encoding.ASCII.GetBytes($"<<{dictionaryEntries} /Filter /FlateDecode /Length {compressed.Length}>>\nstream\n"));
+            stream.Write(compressed, 0, compressed.Length);
+            stream.Write(Encoding.ASCII.GetBytes("\nendstream"));
+            return stream.ToArray();
+        }
+
+        private static byte[] Compress(byte[] data)
+        {
+            using var output = new MemoryStream();
+            using (var compressor = new ZLibStream(output, CompressionLevel.SmallestSize, leaveOpen: true))
+            {
+                compressor.Write(data, 0, data.Length);
+            }
+
+            return output.ToArray();
+        }
+    }
+
+    private static string DecompressFlate(byte[] data)
+    {
+        using var input = new MemoryStream(data);
+        using var inflater = new ZLibStream(input, CompressionMode.Decompress);
+        using var output = new MemoryStream();
+        inflater.CopyTo(output);
+        return Encoding.ASCII.GetString(output.ToArray());
     }
 }

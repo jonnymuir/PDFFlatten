@@ -14,7 +14,7 @@ Some PDFs print badly from mobile devices or lightweight viewers because the for
 - simple `PdfFlattener.Flatten(Stream)` API
 - overload for caller-owned output streams
 - **in-house** flattening implementation with **no restrictive third-party PDF dependency**
-- real-sample and synthetic regression tests
+- generic-fixture and synthetic regression tests
 - NuGet package metadata, XML docs, symbols, SourceLink, and MIT licence
 - GitHub Actions for CI, packaging, and tagged releases
 
@@ -57,7 +57,7 @@ End Using
 A minimal VB.NET console app lives in `samples/PDFFlatten.Sample` for local CLI testing on macOS, Linux, or Windows.
 
 ```bash
-dotnet run --project samples/PDFFlatten.Sample -- BAPSL_P60_Populated.pdf BAPSL_P60_Populated.flattened.pdf
+dotnet run --project samples/PDFFlatten.Sample -- GenericAcroFormFixture.pdf GenericAcroFormFixture.flattened.pdf
 ```
 
 ## Supported scope in v0.1
@@ -68,7 +68,7 @@ PDFFlatten currently targets a practical first slice:
 - AcroForm widget annotations with normal appearance streams (`/AP /N`)
 - flattening by replaying those appearance streams onto the page content
 
-That covers the included real-world sample and keeps the public API stable while the engine grows.
+That covers the included synthetic AcroForm fixture and keeps the public API stable while the engine grows.
 
 ## Project layout
 
@@ -138,5 +138,5 @@ In short, you need to:
 ## Notes
 
 - Caller-owned streams are left open.
-- The sample PDF fixture is covered by automated tests.
+- The synthetic PDF fixture is covered by automated tests.
 - If you publish under a different GitHub owner/repo, update the package metadata URLs in `src/PDFFlatten/PDFFlatten.vbproj`.

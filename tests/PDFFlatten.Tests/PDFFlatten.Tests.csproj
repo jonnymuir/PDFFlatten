@@ -22,6 +22,6 @@
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\PDFFlatten\PDFFlatten.vbproj" />
-    <None Include="..\..\BAPSL_P60_Populated.pdf" Link="BAPSL_P60_Populated.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <None Include="..\..\GenericAcroFormFixture.pdf" Link="GenericAcroFormFixture.pdf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

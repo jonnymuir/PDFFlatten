@@ -8,23 +8,23 @@ internal static partial class TestAssets
 {
     internal static readonly string RepositoryRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
     internal static readonly string SampleProjectPath = Path.Combine(RepositoryRoot, "samples", "PDFFlatten.Sample", "PDFFlatten.Sample.vbproj");
-    internal static readonly string SamplePdfPath = Path.Combine(AppContext.BaseDirectory, "BAPSL_P60_Populated.pdf");
+    internal static readonly string SamplePdfPath = Path.Combine(AppContext.BaseDirectory, "GenericAcroFormFixture.pdf");
 
     internal static readonly IReadOnlyDictionary<string, string> ExpectedFieldValues =
         new Dictionary<string, string>(StringComparer.Ordinal)
         {
-            ["TaxYear"] = "2025-26",
-            ["TitleInitialsLastName"] = "TEST PERSON",
-            ["NationalInsuranceNumber"] = "AB123456C",
-            ["MembershipNumber"] = "PR-00012345",
-            ["PayeReference"] = "123/AB456",
-            ["PreviousEmploymentIncome"] = "£2,345.67",
-            ["PreviousEmploymentTax"] = "£234.56",
-            ["BAPensionPay"] = "£12,345.67",
-            ["BAPensionTax"] = "£1,234.56",
-            ["TotalForYearPensionPay"] = "£14,691.34",
-            ["TotalForYearPensionTax"] = "£1,469.12",
-            ["FinalTaxCode"] = "1257L"
+            ["Field01"] = "Value 01",
+            ["Field02"] = "Value 02",
+            ["Field03"] = "Value 03",
+            ["Field04"] = "Value 04",
+            ["Field05"] = "Value 05",
+            ["Field06"] = "Value 06",
+            ["Field07"] = "Value 07",
+            ["Field08"] = "Value 08",
+            ["Field09"] = "Value 09",
+            ["Field10"] = "Value 10",
+            ["Field11"] = "Value 11",
+            ["Field12"] = "Value 12"
         };
 
     internal static byte[] LoadSamplePdfBytes() => File.ReadAllBytes(SamplePdfPath);

@@ -16,4 +16,4 @@ All notable changes to this project will be documented in this file.
 ### Added
 - First public `PdfFlattener` API
 - Stream-to-stream and stream-returning flatten overloads
-- Initial real-world sample coverage for AcroForm flattening
+- Initial generic synthetic fixture coverage for AcroForm flattening
