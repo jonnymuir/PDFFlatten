@@ -133,3 +133,14 @@ Converted the three production-readiness audit decisions into actionable GitHub 
 - **Impa:** Architecture, sequencing, final technical judgment — ✅ production-readiness signed off
 
 All changes on main, pushed to origin. Production-hardening milestone complete.
+
+## 2026-05-15T07:33:11Z — v0.3.0 Release Complete
+
+**v0.3.0 (Production-Hardening Release)** published to NuGet and GitHub:
+- Tagged and released all three production-hardening issues (#2, #3, #4) as v0.3.0 minor release
+- All 37 tests passing; build validated; no health-report artifacts
+- Release workflow dispatched NuGet publication (both .nupkg and .snupkg packages)
+- GitHub release created automatically by tag-driven workflow with changelog and assets
+- Production-readiness claim finalized: "PDFFlatten is production-ready for flattening classic AcroForm PDFs with direct page annotations, no encryption, and no XFA. It safely rejects all unsupported PDF structures with descriptive exceptions."
+- Scribe recorded decision in `.squad/decisions.md` and created orchestration log.
+- Next: Monitor NuGet indexing (5-15 min typical). Issues #5, #6, #7 remain open for future enhancements (multi-producer corpus, renderer equivalence, field-attribute inheritance).

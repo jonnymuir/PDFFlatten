@@ -196,6 +196,21 @@
   - **Owned by:** Impa (final judgment), Zelda (PDF-spec), Robbie (test coverage), Purah (documentation). All sign-off: work production-quality and ready to stage.
   - **Next action:** Stage and commit Issue #4 documentation. Tag v0.3.0 as production-ready for supported slice.
 
+## 2026-05-15 v0.3.0 Release
+
+### Impa (v0.3.0 Production-Hardening Release)
+- 2026-05-15T08:29:23.433+01:00 — Released v0.3.0 as the production-hardening milestone completion.
+  - **Version Selection:** v0.3.0 (minor pre-1.0 release) — more than a patch due to comprehensive parser hardening, test coverage expansion, and production-readiness posture change; not v1.0.0 because public API surface unchanged.
+  - **Validation:** All 37 tests passing (up from 15); build and pack validated; no untracked release artifacts.
+  - **Release Artifacts:** Health-report files cleaned. Commit 074aca6 on main. Tag v0.3.0 created and pushed.
+  - **Parser Hardening (Issue #2):** 10 fail-closed guards reject unsupported PDF structures: `/Prev`, `/Encrypt`, `/XRefStm`, `/ObjStm`, `/XFA`, page `/Rotate`, appearance `/Matrix`, state-based appearances, indirect page `/Annots`, inherited page `/Resources`. All guards throw descriptive `NotSupportedException` or `InvalidOperationException` before writing output.
+  - **Test Coverage (Issue #3):** Expanded from 15 to 37 tests. ParserHardeningTests (9), UnsupportedPdfGuardTests (6), ExpandedCoverageTests (11). Renderability assertions confirm font and resource resolution post-flattening.
+  - **Documentation (Issue #4):** README sections: Production-readiness posture, Supported structures, Rejection behavior, Known limitations, Not recommended for, Production deployment guidance. API pre-conditions and exception types clarified. CHANGELOG annotated: v0.1.0/v0.2.0 marked constrained-utility releases; v0.3.0 marked production-ready for supported slice.
+  - **GitHub Release:** Created automatically by tag-driven Release workflow; includes generated changelog and packaged assets. NuGet Publication: Release workflow dispatched `dotnet nuget push` for both .nupkg and .snupkg packages to https://api.nuget.org/v3/index.json.
+  - **Production-Readiness Claim:** "PDFFlatten is production-ready for flattening classic AcroForm PDFs with direct page annotations, no encryption, and no XFA. It safely rejects all unsupported PDF structures with descriptive exceptions. Before production deployment, validate your PDF corpus against the supported slice and maintain a known-good producer list."
+  - **Exclusions:** Not claiming support for rotation, inherited field-attribute hierarchies, multi-producer equivalence, or arbitrary PDF coverage (open Issues #5, #6, #7).
+  - **Next:** Monitor NuGet indexing (typically 5-15 minutes). Issues #5, #6, #7 remain open as future enhancements. v0.3.0 marks production-ready posture within documented scope boundaries.
+
 ## Governance
 
 - All meaningful changes require team consensus
