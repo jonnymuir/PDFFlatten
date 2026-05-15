@@ -65,16 +65,11 @@ All 15 regression tests passing. The flattening engine now repairs broken appear
 - Highest-risk failure modes: rotated/transformed page rendering, inherited resource override, common real-world forms failing, text/font issues, incomplete output, non-ASCII mangling, signed/encrypted unsafety
 - Minimum guardrails recommended before broader production claim: documentation, runtime fail-closed checks, correctness verification, producer-diverse corpus with render-diff validation
 
-## 2026-05-15T05:07:34Z — Production-Readiness Audit → GitHub Issue #2
+## 2026-05-15T05:33:44Z — C# migration complete (coordination note)
 
-Impa converted Zelda's production-readiness audit findings into GitHub Issue #2: **Parser hardening: Add fail-closed guards for unsupported PDF variants**
-
-**Issue #2 Scope:**
-- Owned by: Zelda or Purah (PDF parser/serializer)
-- Implement 10 runtime checks to safely reject unsupported PDF structures (encrypted PDFs, xref-stream, object-stream, incremental-update PDFs, indirect annotations, inherited resources, unresolved references, non-stream `/AP /N`, state-driven appearances, rotated pages)
-- Acceptance: negative tests for each unsupported variant, all existing tests pass, no silent corruption
-- Blocker status: unblocks Issue #3 (test coverage expansion)
-
-**Rationale:** v0.1.0 fails silently on unsupported inputs; fail-closed behavior is mandatory before production use. This is the highest-risk failure mode and must be addressed first.
-
-**Sequencing:** Issue #2 complete → Issue #3 (Robbie: test coverage) → Issue #4 (Impa/Purah: documentation) before v0.2.0
+**Cross-team context:**
+- Purah ported `src/PDFFlatten` VB.NET → C# (netstandard2.0), preserving API and semantics
+- Robbie updated test harness to follow project-file cutover (C# primary, VB fallback)
+- Zelda PDFs remain semantically stable; language port does not change flattening behavior
+- All 15 regression tests passing post-migration on `net10.0`
+- Next gate: PDF-semantic behavior review (Zelda); test expansion for unsupported inputs (Robbie, Issue #3)

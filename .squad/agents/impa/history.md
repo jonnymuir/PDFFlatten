@@ -62,3 +62,19 @@ Monitor workflow completion and verify NuGet publication. Repository is ready fo
 - What blocks broad-production claim: intentionally narrow parser (no xref/object streams, no `/Prev` chain), specific widget model assumptions, real corruption/mis-render risks (inherited `/Resources` override, ASCII-only serialization), narrow verification depth (15 tests, synthetic fixture only, no producer corpus, no render-diff)
 - Minimum guardrails recommended: documentation guardrails (explicit scope, exclusions), runtime fail-closed checks (reject unsupported inputs), correctness verification (no unresolvable resources), verification depth (producer corpus, render-diff checks, negative tests)
 - Release judgment: keep v0.1.0 as early constrained utility release, not general-purpose engine; ship with explicit input constraints and fail-closed behavior outside narrow slice
+
+## 2026-05-15T06:07:34Z — Production-Readiness Audit → Issue Backlog
+
+Converted the three production-readiness audit decisions into actionable GitHub issues:
+
+**Issue #2 (Parser hardening):** 10 runtime guards to safely reject unsupported PDF structures (xref-stream, object-stream, incremental updates, encryption, indirect annotations, inherited resources, unresolved references, etc.). Owned by Zelda or Purah.
+
+**Issue #3 (Test coverage):** Expand regression suite from 15 to ~25-30 tests with unsupported-input fixtures (negative tests), producer diversity, and renderability assertions (font/resource resolution). Owned by Robbie.
+
+**Issue #4 (Production documentation):** Update README to establish explicit scope boundaries (supported structures, known limitations, not-recommended-for use cases), add API pre-conditions/exceptions, add CHANGELOG note on v0.1.0 as constrained utility (not general-purpose). Owned by Impa or Purah.
+
+**Sequencing:** Parser hardening (#2) blocks test coverage (#3); both should complete before claiming v0.2.0 production-ready.
+
+**Decision recorded:** `.squad/decisions/inbox/impa-production-issues.md` — includes grouping rationale, owned-by guidance, and what NOT to address (rotation support, field hierarchy, render-diff validation — future if demand warrants).
+
+**Key insight:** The post-release audit revealed that v0.1.0 is an honest, professional early release with strong narrow API and packaging story, but it intentionally ships as constrained utility, not general-purpose engine. These three issues close the gap between "works for the slice we built it for" and "safe to recommend broadly." Issue #2 is the blocker — silent corruption risk is unacceptable.

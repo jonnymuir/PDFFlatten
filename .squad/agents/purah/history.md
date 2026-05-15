@@ -2,13 +2,13 @@
 
 - **Owner:** Jonny Muir
 - **Project:** PDFFlatten
-- **Stack:** VB.NET, portable .NET DLL target (TBD), PDF AcroForm/form-field flattening
-- **Description:** A VB.NET utility that takes PDFs with form fields and flattens them so they print correctly from an iPhone.
+- **Stack:** C#, .NET Standard 2.0 class library, PDF AcroForm/form-field flattening
+- **Description:** A C# utility library that flattens PDF form fields into printable page content while staying broadly portable across .NET runtimes.
 - **Created:** 2026-05-14T21:16:50.701+01:00
 
 ## Learnings
 
-- I own VB.NET implementation details and cross-runtime targeting decisions.
+- I own C# implementation details and cross-runtime targeting decisions.
 - The app's main technical risk is choosing a PDF approach that both supports AcroForm flattening and works cleanly on the portable .NET target we choose.
 
 ### 2026-05-14: macOS Constraint → .NET Standard 2.0 Target
@@ -117,3 +117,14 @@ Impa converted post-release audit findings into GitHub issues that involve Purah
 - Rationale: v0.1.0 is an honest early release but lacks explicit guardrails for production teams
 
 **Sequencing:** Issue #2 (parser) complete → Issues #3 (Robbie: tests) & #4 (Purah/Impa: docs) in parallel → before v0.2.0 production-ready claim
+
+
+### 2026-05-15T05:33:44Z — C# language port complete (Scribe merge)
+
+- **Architecture decision:** `src/PDFFlatten` ported from VB.NET to C# while remaining `netstandard2.0`; the public `PdfFlattener` API and flattening semantics stay unchanged so Zelda can review behavior instead of chasing language churn.
+- **Port structure:** One-class-per-file layout in C# (PdfFlattener.cs, Internals/ subdirectory) mirrors original intent; build validation clean on Release; all 15 regression tests passing.
+- **Pattern:** When porting a portability-first library, split parser/model/serializer/value types into one class per file before deeper edits; that keeps internal seams easy to diff and safer to review.
+- **Team coordination:** Robbie updated test resolution to tolerate project-file cutover from VB to C#; sample output path stabilized on `net10.0`.
+- **User preference:** Broaden language/runtime compatibility and documentation, but do not widen PDF support scope unless the semantic owner asks for it.
+- **Key file paths:** `src/PDFFlatten/PDFFlatten.csproj`, `src/PDFFlatten/PdfFlattener.cs`, `src/PDFFlatten/Internals/`, `samples/PDFFlatten.Sample/`, `README.md`, `.github/workflows/`.
+- **Handoff:** Zelda reserves PDF-semantic behavior review; Robbie owns test expansion for unsupported-input guards (GitHub Issue #3, post-#2).

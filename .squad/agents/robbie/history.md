@@ -115,3 +115,26 @@ Impa converted Robbie's test-coverage audit findings into GitHub Issue #3: **Exp
 **Rationale:** Current 15 tests cover only synthetic slice; need real-world producer diversity and renderability depth to claim production safety. Negative tests for xref-stream/object-stream/indirect-annots/etc require parser hardening to be in place.
 
 **Sequencing:** Issue #2 (Zelda: parser hardening) complete → Issue #3 (Robbie: test coverage) in parallel with Issue #4 (Impa/Purah: documentation) → before v0.2.0
+
+## 2026-05-15T06:16:04.770+01:00 — Net10 verification pass for C# migration (updated context)
+
+**What I checked (original):**
+- Ran the existing solution tests first and treated the result honestly instead of assuming the suite was clean; baseline had one failing CLI integration test caused by writing the sample output under the test bin folder and tripping a file lock.
+- Moved `tests/PDFFlatten.Tests` to `net10.0` and updated the test-side project resolution so the suite can follow the library/sample cutover from VB project files to C# project files without me editing Purah-owned implementation files.
+- Re-ran the release build and full solution test suite after the changes.
+
+**Outcome (original):**
+- The regression suite stays at 15 tests with the same behavioral intent and now passes on `net10.0`.
+- The sample smoke test is stable again because it writes to `artifacts/test-output/...` instead of the test output directory.
+- No .NET 10 tooling blocker showed up on this machine; SDK `10.0.102` built and tested the repo successfully.
+
+**Learning:**
+- For migration work, brittle test plumbing is as dangerous as broken assertions; if the quality gate depends on file paths or project-file extensions, make the harness resilient before blaming the implementation.
+
+**2026-05-15T05:33:44Z — C# migration validated (Scribe merge):**
+- Language port from VB to C# complete with one-class-per-file structure
+- All 15 regression tests still passing on `net10.0` post-migration
+- Sample CLI integration tests stable with consolidated output path
+- Public API (`PdfFlattener.Flatten`) semantics preserved; no behavior regression
+- Test harness successfully resolved `PDFFlatten.csproj` (C# primary) instead of .vbproj
+- Next context: Zelda PDF-semantic review; Robbie test expansion for unsupported-input guards

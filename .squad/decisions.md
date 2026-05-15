@@ -85,6 +85,21 @@
   - **Sequencing:** #2 unblocks #3; both complete before v0.2.0 production-readiness claim.
   - **Not addressed:** Appearance matrix rotation, field hierarchy flattening, producer-specific rendering quirks — tracked separately as future enhancements.
 
+### Purah (Language Port)
+- 2026-05-15T06:16:04.770+01:00 — C# netstandard library port.
+  - **What:** Port `src/PDFFlatten` from VB.NET to C# while keeping the package on `netstandard2.0`, move the solution/workflows/docs to `PDFFlatten.csproj`, and keep the sample/test surface aligned with the C# source layout.
+  - **Why:** Jonny asked for C# source without sacrificing .NET Framework/current .NET reach. Keeping `netstandard2.0` preserves the compatibility matrix.
+  - **Outcome:** Ported one-class-per-file, updated solution/sample/docs/squad artifacts, validated build/test/pack successfully. Semantics and scope unchanged; PDF-semantic review reserved for Zelda.
+
+### Robbie (Test/CI Migration)
+- 2026-05-15T06:16:04.770+01:00 — Net10 test migration guardrails.
+  - **What:** Moved `tests/PDFFlatten.Tests` to `net10.0`, kept the regression intent unchanged, and made the test wiring tolerant of the in-flight language port by resolving `PDFFlatten.csproj` first and falling back to `PDFFlatten.vbproj` only if the C# project is not present yet. Moved the sample CLI test output under `artifacts/test-output/...` so the suite stops writing under the test bin folder.
+  - **Why:** Quality gate follows the C# migration without forcing concurrent edits. Sample smoke test needs a stable output path on `net10.0`.
+
+- 2026-05-15T06:16:04.770+01:00 — Sample/docs coverage judgment for the C# port.
+  - **What:** Kept the existing CLI integration coverage as the executable proof for the sample app after the port. Did not add README-snippet compilation tests; current documentation examples still exercise the same `PdfFlattener.Flatten` contract already covered by the API and sample tests.
+  - **Why:** Test coverage protects behavior, not maintenance tax. Meaningful regression risk is "does the shipped sample still run end-to-end?" — that path is now green on `net10.0`.
+
 ## Governance
 
 - All meaningful changes require team consensus
