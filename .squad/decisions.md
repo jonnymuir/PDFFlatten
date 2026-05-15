@@ -254,6 +254,31 @@
 
 ## Governance
 
+
+## 2026-05-15 Release (v0.3.1)
+
+### Impa (Release v0.3.1)
+- 2026-05-15T19:37:58.260+01:00 — Release the follow-on hardening work (Issues #5, #6, #7) as **v0.3.1** — a patch release.
+   - **Decision:** v0.3.1 patch release rationale: unreleased work on main includes field-hierarchy boundary tightening, producer fixture corpus, and synthetic regression coverage. No public API changes; enhancements to existing v0.3.0 production-hardening foundation warrant patch release.
+   - **Execution:** Updated CHANGELOG.md ([Unreleased] → [0.3.1]); updated PackageReleaseNotes in PDFFlatten.csproj; validated locally (dotnet restore, build, all 53 tests passing: 51 passed, 2 visual-regression skipped); committed release changes on main with Co-authored-by trailer (commit 9bbcd66); pushed main to origin; created and pushed tag v0.3.1.
+   - **Workflow outcome:** GitHub Actions Release workflow triggered; completed successfully: Build ✅, Tests ✅ (53 total: 51 passed, 2 skipped), Pack ✅ (PDFFlatten.0.3.1.nupkg and .snupkg), GitHub release created ✅ (https://github.com/jonnymuir/PDFFlatten/releases/tag/v0.3.1), NuGet publish ✅ (packages pushed to nuget.org).
+   - **Production-readiness update:** PDFFlatten is production-ready for flattening classic AcroForm PDFs with direct page annotations and no inherited operative field attributes. Safely rejects unsupported PDF structures with descriptive exceptions.
+   - **Status:** ✅ Complete. v0.3.1 now live on NuGet.org. No blocker issues. Next: monitor NuGet indexing (5–15 minutes typical). Issues #5, #6, #7 now closed/shipped.
+
+### Robbie (Release Verdict)
+- 2026-05-15T19:37:58.260+01:00 — Main is fit to tag as v0.3.1 release.
+   - **Verdict:** READY. 53/53 tests pass (up from 37 at v0.3.0). Build and pack clean. Release workflow correct. [Unreleased] section populated with post-v0.3.0 additions (producer corpus, field-hierarchy tightening).
+   - **Evidence:** 53/53 tests pass (Release configuration, local run). New test files: ProducerCorpusFixtureTests.cs, VisualEquivalenceTests.cs. dotnet pack produces .nupkg and .snupkg without warnings. release.yml runs visual regression on macOS first, then packs and publishes.
+   - **Advisory (non-blocking):** PackageReleaseNotes in PDFFlatten.csproj said "37 tests passing" but actual count is 53. Cosmetic metadata issue (misleading to NuGet consumers). Recommendation: update to "53 tests" before tagging.
+
+### Impa (Release Metadata Cleanup)
+- 2026-05-15T19:37:58.260+01:00 — Updated PackageReleaseNotes in PDFFlatten.csproj to reflect correct test count (v0.3.1).
+   - **Problem:** v0.3.1 shipped with 53 passing tests but PackageReleaseNotes still referenced old v0.3.0 baseline ("All 37 tests passing"). Async drift: NuGet consumers see outdated validation-lane metadata.
+   - **Solution:** Updated PackageReleaseNotes old ("All 37 tests passing") → new ("All 53 tests passing").
+   - **Commit:** fd7318f — chore: update PackageReleaseNotes to reflect 53 tests in v0.3.1. Pushed to origin/main.
+   - **Rationale:** Pure metadata correction, no code/API/test changes. Fixes factual inaccuracy in published package metadata. Improves transparency for consumers.
+   - **Status:** ✅ Complete — committed, pushed, team history updated.
+
 - All meaningful changes require team consensus
 - Document architectural decisions here
 - Keep history focused on work, decisions focused on direction
