@@ -144,3 +144,15 @@ All changes on main, pushed to origin. Production-hardening milestone complete.
 - Production-readiness claim finalized: "PDFFlatten is production-ready for flattening classic AcroForm PDFs with direct page annotations, no encryption, and no XFA. It safely rejects all unsupported PDF structures with descriptive exceptions."
 - Scribe recorded decision in `.squad/decisions.md` and created orchestration log.
 - Next: Monitor NuGet indexing (5-15 min typical). Issues #5, #6, #7 remain open for future enhancements (multi-producer corpus, renderer equivalence, field-attribute inheritance).
+
+## 2026-05-15T19:37:58Z — v0.3.1 Release Complete (Follow-on Hardening)
+
+**v0.3.1 (Follow-on Field-Attribute Hardening + Producer Corpus Release)** published to NuGet and GitHub:
+- Released Issues #5, #6, #7 follow-on work as v0.3.1 patch release
+- Field-hierarchy boundary tightened: inherited operative field attributes now reject fail-closed
+- Producer fixture corpus added (reportlab, pdfrw, pypdf) with provenance metadata and regression tests
+- All 53 tests passing (51 passed, 2 visual-regression skipped on Linux CI); build validated
+- Release workflow succeeded cleanly: GitHub release created, NuGet packages published
+- Execution path: CHANGELOG updated, PackageReleaseNotes refreshed, commit 9bbcd66 pushed, tag v0.3.1 created and pushed, workflow completed in ~2 minutes
+- Production-readiness claim updated: "production-ready for classic AcroForm PDFs with direct page annotations and no inherited operative field attributes"
+- Next: Monitor NuGet indexing. Issues #5, #6, #7 now closed/shipped.
