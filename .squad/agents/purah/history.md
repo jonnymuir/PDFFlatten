@@ -99,3 +99,21 @@ API is stable for the foreseeable future. Future enhancements (e.g., field value
 - Sample end-to-end workflow documented and locked.
 
 **Status:** Console sample is a stable, repeatable tool for testing the library against real user PDFs on the developer's machine. API remains unchanged.
+
+## 2026-05-15T05:07:34Z — Production-Readiness Audit → GitHub Issues #2 & #4
+
+Impa converted post-release audit findings into GitHub issues that involve Purah:
+
+**Issue #2 (co-owner):** Parser hardening: Add fail-closed guards for unsupported PDF variants
+- Owned by: Zelda or **Purah** (PDF parser/serializer)
+- Implement 10 runtime checks to safely reject unsupported PDF structures
+- Blocker for Issue #3 and v0.2.0
+
+**Issue #4 (owned):** Documentation: Establish production-readiness boundaries and update README
+- Owned by: **Impa or Purah** (productization/docs)
+- Update README with supported structures, known limitations, not-recommended-for use cases
+- Add API docs (pre-conditions, exceptions), CHANGELOG note on v0.1.0 as constrained utility (not general-purpose)
+- Acceptance: README is clear enough for production teams to make informed risk decisions; API docs specify pre-conditions and error behavior
+- Rationale: v0.1.0 is an honest early release but lacks explicit guardrails for production teams
+
+**Sequencing:** Issue #2 (parser) complete → Issues #3 (Robbie: tests) & #4 (Purah/Impa: docs) in parallel → before v0.2.0 production-ready claim

@@ -76,6 +76,15 @@
   - **Minimum guardrails before claiming production safety:** Documentation guardrail (state classic xref-table scope, explicitly exclude signed/encrypted/xref-stream/object-stream/incremental/transform-heavy/state-appearance); runtime fail-closed checks (reject `/Prev`, xref streams, object streams, encrypted, signatures, indirect `/Annots`, non-stream `/AP /N`, unresolved references, inherited page resources, unsupported transforms); correctness guardrail (do not serialize if any resource/font/reference unresolvable); verification guardrail (real-world corpus from multiple producers, renderer/viewer comparison checks, negative tests for unsupported inputs).
   - **Release judgment:** Keep v0.1.0 as early constrained utility release, not general-purpose engine; ship with explicit input constraints and fail-closed behavior outside that slice.
 
+### Impa (Production-Readiness Audit → Issue Backlog)
+- 2026-05-15T06:07:34.849+01:00 — Production-readiness audit converted to actionable GitHub issues.
+  - **Converted decisions:** Zelda's PDF-spec guardrails audit, Robbie's test-coverage gaps audit, Impa's overall production-readiness judgment → three focused GitHub issues (#2, #3, #4).
+  - **Issue #2:** Parser hardening: Add fail-closed guards for unsupported PDF variants (Zelda/Purah owned, blocks #3)
+  - **Issue #3:** Expand regression suite with unsupported-input fixtures and renderability checks (Robbie owned)
+  - **Issue #4:** Documentation: Establish production-readiness boundaries and update README (Impa/Purah owned, post #2/#3)
+  - **Sequencing:** #2 unblocks #3; both complete before v0.2.0 production-readiness claim.
+  - **Not addressed:** Appearance matrix rotation, field hierarchy flattening, producer-specific rendering quirks — tracked separately as future enhancements.
+
 ## Governance
 
 - All meaningful changes require team consensus

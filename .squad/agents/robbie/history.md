@@ -101,3 +101,17 @@ All 15 regression tests passing. The test suite now includes `AppearanceResource
 - Protected today: API contract, null handling, stream ownership, no-op for plain PDFs, `/AcroForm`/annotation removal, non-widget annotation preservation, one appearance per field, CLI sample, text font repair for synthetic case
 - High-risk unprotected: xref/object-stream PDFs untested, indirect `/Length` untested, inherited page attributes assumed away, indirect `/Annots` untested, state-driven appearances untested, page rotation/appearance `/Matrix` untested, incremental-update untested, field hierarchy untested, multi-filter streams untested, no render-level assertions
 - Recommendation: add renderability checks per risk bucket so "widgets removed" cannot masquerade as "content preserved"
+
+## 2026-05-15T05:07:34Z — Production-Readiness Audit → GitHub Issue #3
+
+Impa converted Robbie's test-coverage audit findings into GitHub Issue #3: **Expand regression suite with unsupported-input fixtures and renderability checks**
+
+**Issue #3 Scope:**
+- Owned by: Robbie (test infrastructure)
+- Add ~10-15 new regression fixtures covering unsupported-input negatives, producer diversity, and renderability assertions
+- Acceptance: 25-30 total tests (up from 15), clear rejection on unsupported inputs, fonts/resources verify post-flattening
+- Blocker dependency: unblocked by Issue #2 (parser hardening must land first so exceptions work)
+
+**Rationale:** Current 15 tests cover only synthetic slice; need real-world producer diversity and renderability depth to claim production safety. Negative tests for xref-stream/object-stream/indirect-annots/etc require parser hardening to be in place.
+
+**Sequencing:** Issue #2 (Zelda: parser hardening) complete → Issue #3 (Robbie: test coverage) in parallel with Issue #4 (Impa/Purah: documentation) → before v0.2.0
