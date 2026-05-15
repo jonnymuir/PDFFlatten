@@ -20,7 +20,7 @@ jobs:
       - name: Set up .NET
         uses: actions/setup-dotnet@v4
         with:
-          dotnet-version: 8.0.x
+          dotnet-version: 10.0.x
 
       - name: Resolve version
         shell: bash
@@ -38,7 +38,7 @@ jobs:
         run: dotnet test PDFFlatten.sln --configuration Release --no-build
 
       - name: Pack
-        run: dotnet pack src/PDFFlatten/PDFFlatten.vbproj --configuration Release --no-build -p:PackageVersion=${{ env.PACKAGE_VERSION }} --output artifacts
+        run: dotnet pack src/PDFFlatten/PDFFlatten.csproj --configuration Release --no-build -p:PackageVersion=${{ env.PACKAGE_VERSION }} --output artifacts
 
       - name: Create GitHub release
         env:

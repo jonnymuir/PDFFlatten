@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>net8.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <IsPackable>false</IsPackable>
@@ -21,7 +21,7 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\..\src\PDFFlatten\PDFFlatten.vbproj" />
+    <ProjectReference Include="..\..\src\PDFFlatten\PDFFlatten.csproj" />
     <None Include="..\..\GenericAcroFormFixture.pdf" Link="GenericAcroFormFixture.pdf" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

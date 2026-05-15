@@ -7,7 +7,8 @@ namespace PDFFlatten.Tests;
 internal static partial class TestAssets
 {
     internal static readonly string RepositoryRoot = Path.GetFullPath(Path.Combine(AppContext.BaseDirectory, "..", "..", "..", "..", ".."));
-    internal static readonly string SampleProjectPath = Path.Combine(RepositoryRoot, "samples", "PDFFlatten.Sample", "PDFFlatten.Sample.vbproj");
+    internal static readonly string SampleProjectPath = Path.GetFullPath(
+        Path.Combine(RepositoryRoot, "samples", "PDFFlatten.Sample", "PDFFlatten.Sample.csproj"));
     internal static readonly string SamplePdfPath = Path.Combine(AppContext.BaseDirectory, "GenericAcroFormFixture.pdf");
 
     internal static readonly IReadOnlyDictionary<string, string> ExpectedFieldValues =
@@ -44,11 +45,8 @@ internal static partial class TestAssets
         }
 
         internal bool StartsWithPdfHeader => _text.StartsWith("%PDF-", StringComparison.Ordinal);
-
         internal bool HasAcroForm => _text.Contains("/AcroForm", StringComparison.Ordinal);
-
         internal int WidgetCount => WidgetRegex().Matches(_text).Count;
-
         internal int DrawOperationCount => DrawOperationRegex().Matches(_text).Count;
 
         internal IReadOnlyDictionary<string, string> ExtractFieldValues()

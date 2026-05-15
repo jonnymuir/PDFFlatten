@@ -41,8 +41,8 @@ public sealed class PdfFlattenerTests
         var page = GetFirstPage(document, catalog);
 
         PdfValue? ignored = null;
-        Assert.That(catalog.TryGetValue("AcroForm", ref ignored), Is.False);
-        Assert.That(page.TryGetValue("Annots", ref ignored), Is.False);
+        Assert.That(catalog.TryGetValue("AcroForm", out ignored), Is.False);
+        Assert.That(page.TryGetValue("Annots", out ignored), Is.False);
 
         var resources = ResolvePageResources(document, page);
         var xObjects = ResolveNestedDictionary(document, resources, "XObject");
@@ -75,7 +75,7 @@ public sealed class PdfFlattenerTests
         var page = GetFirstPage(document, catalog);
 
         PdfValue? ignored = null;
-        Assert.That(catalog.TryGetValue("AcroForm", ref ignored), Is.False);
+        Assert.That(catalog.TryGetValue("AcroForm", out ignored), Is.False);
 
         var annotations = page.RequireArray("Annots");
         Assert.That(annotations.Items.Count, Is.EqualTo(1));
@@ -144,7 +144,7 @@ public sealed class PdfFlattenerTests
     private static PdfDictionary ResolvePageResources(PdfDocument document, PdfDictionary page)
     {
         PdfValue? resourcesValue = null;
-        Assert.That(page.TryGetValue("Resources", ref resourcesValue), Is.True);
+        Assert.That(page.TryGetValue("Resources", out resourcesValue), Is.True);
         return resourcesValue switch
         {
             PdfDictionary direct => direct,
@@ -156,7 +156,7 @@ public sealed class PdfFlattenerTests
     private static PdfDictionary ResolveNestedDictionary(PdfDocument document, PdfDictionary parent, string key)
     {
         PdfValue? value = null;
-        Assert.That(parent.TryGetValue(key, ref value), Is.True);
+        Assert.That(parent.TryGetValue(key, out value), Is.True);
         return value switch
         {
             PdfDictionary direct => direct,

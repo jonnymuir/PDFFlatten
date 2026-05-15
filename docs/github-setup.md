@@ -67,8 +67,8 @@ Update `CHANGELOG.md`, commit, then tag a version:
 ```bash
 git checkout main
 git pull origin main
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 The release workflow will:
@@ -91,4 +91,4 @@ Update these values before publishing:
 - `PackageProjectUrl`
 - `RepositoryUrl`
 
-They live in `src/PDFFlatten/PDFFlatten.vbproj`.
+They live in `src/PDFFlatten/PDFFlatten.csproj`.

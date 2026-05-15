@@ -6,8 +6,8 @@ How to decide who handles what.
 
 | Work Type | Route To | Examples |
 |-----------|----------|----------|
-| Architecture, scope, and technical trade-offs | Impa | Project structure, library choices, review gates, sequencing work |
-| VB.NET / portable .NET targeting | Purah | Cross-runtime target choice, DLL packaging, compatibility issues, package fit |
+| Architecture, .NET runtime trade-offs, and technical review | Impa | Project structure, C# direction, netstandard policy, review gates, sequencing work |
+| C# / portable .NET targeting | Purah | Cross-runtime target choice, packaging, sample ergonomics, compatibility issues, package fit |
 | PDF internals and AcroForm flattening | Zelda | Field discovery, appearance streams, widget annotations, flattening strategy |
 | Testing and print validation | Robbie | Sample PDFs, regression cases, form-field edge cases, printability checks |
 | Code review | Impa | Review PRs, check quality, suggest improvements |

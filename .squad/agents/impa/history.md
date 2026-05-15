@@ -2,14 +2,14 @@
 
 - **Owner:** Jonny Muir
 - **Project:** PDFFlatten
-- **Stack:** VB.NET, .NET Framework 4.6.2, PDF AcroForm/form-field flattening
-- **Description:** A VB.NET utility that takes PDFs with form fields and flattens them so they print correctly from an iPhone.
+- **Stack:** C#, .NET Standard 2.0 class library, PDF AcroForm/form-field flattening
+- **Description:** A C# utility library that flattens PDF form fields into printable page content while staying broadly portable across .NET runtimes.
 - **Created:** 2026-05-14T21:16:50.701+01:00
 
 ## Learnings
 
 - Team lead for scoping the implementation, reviewing architecture, and coordinating specialist handoffs.
-- Key specialists on this project are Purah for VB/.NET Framework 4.6.2 and Zelda for PDF/AcroForm behavior.
+- Key specialists on this project are Purah for C#/.NET Standard portability and Zelda for PDF/AcroForm behavior.
 - 2026-05-14T21:25:31.595+01:00 — Rebased the project direction onto a VB.NET `.NET Standard 2.0` class-library skeleton (`PDFFlatten.sln`, `src/PDFFlatten/PDFFlatten.vbproj`) because macOS rules out .NET Framework and the PDF engine choice should stay deferred behind `IPdfFlattener`.
 
 **2026-05-14T20:25:31Z — Decision Merged & Orchestration Complete**
@@ -78,3 +78,10 @@ Converted the three production-readiness audit decisions into actionable GitHub 
 **Decision recorded:** `.squad/decisions/inbox/impa-production-issues.md` — includes grouping rationale, owned-by guidance, and what NOT to address (rotation support, field hierarchy, render-diff validation — future if demand warrants).
 
 **Key insight:** The post-release audit revealed that v0.1.0 is an honest, professional early release with strong narrow API and packaging story, but it intentionally ships as constrained utility, not general-purpose engine. These three issues close the gap between "works for the slice we built it for" and "safe to recommend broadly." Issue #2 is the blocker — silent corruption risk is unacceptable.
+
+## 2026-05-15T06:16:04.770+01:00 — C# netstandard architecture migration
+
+- Locked the architectural direction on a C# source base while keeping the shipping package at `netstandard2.0` for .NET Framework and current .NET consumers.
+- Coordinated implementation with Purah, correctness review with Zelda, and test-posture review with Robbie instead of duplicating their scopes.
+- Captured the hard truth that `net10.0` is the repo's current SDK validation lane, not the consumer compatibility target; the package target remains the real portability contract.
+- Updated squad direction so Impa/Purah routing now explicitly centers C#, .NET Standard, and cross-runtime compatibility judgment.

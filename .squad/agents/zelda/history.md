@@ -73,3 +73,6 @@ All 15 regression tests passing. The flattening engine now repairs broken appear
 - Zelda PDFs remain semantically stable; language port does not change flattening behavior
 - All 15 regression tests passing post-migration on `net10.0`
 - Next gate: PDF-semantic behavior review (Zelda); test expansion for unsupported inputs (Robbie, Issue #3)
+- 2026-05-15T06:16:04.770+01:00 — Coordinated with Purah for the C#/.NET port, then reviewed the translated PDF engine instead of re-implementing it; the port keeps the existing narrow flattening slice (`/AP /N` replay, widget removal, `/AcroForm` removal, reachable-object serialization) unchanged.
+- 2026-05-15T06:16:04.770+01:00 — Found and fixed C# translation regressions in regex/literal escaping (`PdfFlattener`, `PdfReader`, `PdfSerializer`, and the test literal decoder) before trusting any PDF review signal; those were port artifacts, not PDF-model changes.
+- 2026-05-15T06:16:04.770+01:00 — Verified semantic parity by comparing the flattened output for `GenericAcroFormFixture.pdf` against the pre-port HEAD implementation; hashes matched exactly, which is the strongest evidence that the language port did not subtly change current flattening behavior.

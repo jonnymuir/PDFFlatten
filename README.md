@@ -1,8 +1,8 @@
 # PDFFlatten
 
-PDFFlatten is a small **VB.NET / .NET Standard 2.0** utility library for turning interactive **AcroForm PDFs** into plain, printable page content.
+PDFFlatten is a small **C# / .NET Standard 2.0** utility library for turning interactive **AcroForm PDFs** into plain, printable page content.
 
-The first public API is intentionally simple: give it a `Stream`, get back a flattened PDF `Stream`.
+The library target stays at **`netstandard2.0`** so the same package can be consumed from **.NET Framework 4.6.1+** (including **4.6.2**) and current .NET releases.
 
 ## Why this package exists
 
@@ -14,7 +14,8 @@ Some PDFs print badly from mobile devices or lightweight viewers because the for
 - simple `PdfFlattener.Flatten(Stream)` API
 - overload for caller-owned output streams
 - **in-house** flattening implementation with **no restrictive third-party PDF dependency**
-- generic-fixture and synthetic regression tests
+- C# library source with one class per file and XML docs on the public surface
+- generic-fixture and synthetic regression tests targeting `net10.0`
 - NuGet package metadata, XML docs, symbols, SourceLink, and MIT licence
 - GitHub Actions for CI, packaging, and tagged releases
 
@@ -24,7 +25,37 @@ Some PDFs print badly from mobile devices or lightweight viewers because the for
 dotnet add package PDFFlatten
 ```
 
-## Quick start
+## Compatibility posture
+
+- **Library target:** `netstandard2.0`
+- **Consumer reach:** designed for .NET Framework 4.6.2+ and current .NET runtimes through the .NET Standard 2.0 surface area
+- **Repo validation target:** the sample app, tests, and CI currently run on `net10.0` as the repo's latest-SDK smoke-test lane; that does **not** change the package target or consumer matrix
+- **Source layout:** C# implementation with one class per file, with public API kept intentionally small
+
+## Quick start — modern .NET / C#
+
+```csharp
+using PDFFlatten;
+using System.IO;
+
+using Stream input = File.OpenRead("input.pdf");
+using Stream flattened = PdfFlattener.Flatten(input);
+using Stream output = File.Create("flattened.pdf");
+flattened.CopyTo(output);
+```
+
+If you already manage the destination stream:
+
+```csharp
+using PDFFlatten;
+using System.IO;
+
+using Stream input = File.OpenRead("input.pdf");
+using Stream output = File.Create("flattened.pdf");
+PdfFlattener.Flatten(input, output);
+```
+
+## Quick start — VB.NET on .NET Framework 4.6.2
 
 ```vb
 Imports PDFFlatten
@@ -39,7 +70,7 @@ Using input As Stream = File.OpenRead("input.pdf")
 End Using
 ```
 
-If you already manage the destination stream:
+Caller-owned output stream example:
 
 ```vb
 Imports PDFFlatten
@@ -54,11 +85,13 @@ End Using
 
 ## Console sample
 
-A minimal VB.NET console app lives in `samples/PDFFlatten.Sample` for local CLI testing on macOS, Linux, or Windows.
+A minimal **C#** console app lives in `samples/PDFFlatten.Sample` for local CLI testing on macOS, Linux, or Windows.
 
 ```bash
 dotnet run --project samples/PDFFlatten.Sample -- GenericAcroFormFixture.pdf GenericAcroFormFixture.flattened.pdf
 ```
+
+The sample targets `net10.0` so local smoke tests run on the current SDK, while the reusable package remains `netstandard2.0` for consumer reach.
 
 ## Supported scope in v0.1
 
@@ -76,12 +109,12 @@ That covers the included synthetic AcroForm fixture and keeps the public API sta
 PDFFlatten.sln
 src/
   PDFFlatten/
-    PDFFlatten.vbproj
-    PdfFlattener.vb
-    Internals/
+    PDFFlatten.csproj
+    PdfFlattener.cs
+    Internals/        # one class per file for internal model/parser/serializer types
 samples/
   PDFFlatten.Sample/
-    Program.vb
+    Program.cs
 tests/
   PDFFlatten.Tests/
 docs/
@@ -96,20 +129,20 @@ CONTRIBUTING.md
 dotnet restore
 dotnet build PDFFlatten.sln --configuration Release
 dotnet test PDFFlatten.sln --configuration Release
-dotnet pack src/PDFFlatten/PDFFlatten.vbproj --configuration Release --output artifacts
+dotnet pack src/PDFFlatten/PDFFlatten.csproj --configuration Release --output artifacts
 ```
 
 ## Release flow
 
 1. Update `CHANGELOG.md`.
 2. Commit and push to GitHub.
-3. Create a version tag like `v0.1.0`.
+3. Create a version tag like `v0.2.0`.
 4. Push the tag.
 5. GitHub Actions builds, tests, packs, creates a GitHub release, and publishes to NuGet.
 
 ```bash
-git tag v0.1.0
-git push origin v0.1.0
+git tag v0.2.0
+git push origin v0.2.0
 ```
 
 ## GitHub setup
@@ -139,4 +172,4 @@ In short, you need to:
 
 - Caller-owned streams are left open.
 - The synthetic PDF fixture is covered by automated tests.
-- If you publish under a different GitHub owner/repo, update the package metadata URLs in `src/PDFFlatten/PDFFlatten.vbproj`.
+- If you publish under a different GitHub owner/repo, update the package metadata URLs in `src/PDFFlatten/PDFFlatten.csproj`.

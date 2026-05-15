@@ -21,13 +21,13 @@ public sealed class ConsoleSampleTests
     [Test]
     public void Sample_console_flattens_the_generic_fixture_from_command_line()
     {
-        var outputDirectory = Path.Combine(AppContext.BaseDirectory, "sample-cli-output");
+        var outputDirectory = Path.Combine(
+            TestAssets.RepositoryRoot,
+            "artifacts",
+            "test-output",
+            "sample-cli-output",
+            TestContext.CurrentContext.Test.ID);
         var outputPath = Path.Combine(outputDirectory, "GenericAcroFormFixture.flattened.pdf");
-
-        if (File.Exists(outputPath))
-        {
-            File.Delete(outputPath);
-        }
 
         Directory.CreateDirectory(outputDirectory);
 
@@ -54,9 +54,9 @@ public sealed class ConsoleSampleTests
         }
         finally
         {
-            if (File.Exists(outputPath))
+            if (Directory.Exists(outputDirectory))
             {
-                File.Delete(outputPath);
+                Directory.Delete(outputDirectory, recursive: true);
             }
         }
     }

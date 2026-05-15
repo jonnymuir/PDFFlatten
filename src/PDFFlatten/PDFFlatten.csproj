@@ -3,9 +3,9 @@
     <TargetFramework>netstandard2.0</TargetFramework>
     <AssemblyName>PDFFlatten</AssemblyName>
     <RootNamespace>PDFFlatten</RootNamespace>
-    <OptionExplicit>On</OptionExplicit>
-    <OptionStrict>On</OptionStrict>
-    <OptionInfer>On</OptionInfer>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>disable</ImplicitUsings>
+    <LangVersion>latestMajor</LangVersion>
     <Description>Small, dependency-free AcroForm flattening for classic PDF files.</Description>
     <GenerateDocumentationFile>true</GenerateDocumentationFile>
     <GeneratePackageOnBuild>false</GeneratePackageOnBuild>
@@ -17,7 +17,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>Initial in-house stream-based AcroForm flattening release.</PackageReleaseNotes>
+    <PackageReleaseNotes>C# source migration with the netstandard2.0 package target and public PdfFlattener API preserved; repo validation now runs on a net10.0 sample/test/CI lane.</PackageReleaseNotes>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 

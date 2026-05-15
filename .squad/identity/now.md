@@ -1,9 +1,9 @@
 ---
-updated_at: 2026-05-14T21:39:55.268+01:00
-focus_area: In-house PDF flattening
+updated_at: 2026-05-15T06:16:04.770+01:00
+focus_area: C# netstandard portability
 active_issues: []
 ---
 
 # What We're Focused On
 
-Turning PDFFlatten into a GitHub-ready NuGet library with an in-house PDF parser/AcroForm flattener, tests, documentation, and CI/CD.
+Keeping PDFFlatten a broad-compatibility `netstandard2.0` package while the implementation, docs, and repo ergonomics move to a cleaner C# codebase.
