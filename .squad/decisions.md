@@ -103,6 +103,13 @@
 ### Purah (Sample App Rerun)
 - 2026-05-15T06:45:43.234+01:00 — C# console sample rerun against `BAPSL_P60_Populated.pdf` confirmed successful library operation without code changes. Input: 107 KB populated real-world PDF; Output: 101 KB valid flattened PDF (MD5: `e76ac3fba1d3b5ee238bbb524a103e21`). The .NET 10.0 target framework, file I/O, and flattening operation all working correctly.
 
+### Impa (Release version bump: v0.2.0)
+- 2026-05-15T06:54:58.103+01:00 — Release the current uncommitted migration state as `v0.2.0`.
+  - **Decision:** Release the current uncommitted migration state as `v0.2.0`.
+  - **Why not `v0.1.1`:** The package API stays compatible, but this is more than a patch. The repo's canonical implementation and sample move from VB.NET to C#, the solution/workflows now package from `PDFFlatten.csproj`, and the validation lane moves to `.NET 10` while the shipped package stays `netstandard2.0`.
+  - **Why not `v1.0.0`:** The package still carries the documented narrow v0.x scope and is not being promoted to broad production-safe PDF coverage.
+  - **Release posture:** Treat this as the next minor pre-1.0 milestone: implementation-language migration, tooling/workflow realignment, and documentation refresh without a public API break.
+
 ## Governance
 
 - All meaningful changes require team consensus

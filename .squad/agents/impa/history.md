@@ -85,3 +85,27 @@ Converted the three production-readiness audit decisions into actionable GitHub 
 - Coordinated implementation with Purah, correctness review with Zelda, and test-posture review with Robbie instead of duplicating their scopes.
 - Captured the hard truth that `net10.0` is the repo's current SDK validation lane, not the consumer compatibility target; the package target remains the real portability contract.
 - Updated squad direction so Impa/Purah routing now explicitly centers C#, .NET Standard, and cross-runtime compatibility judgment.
+
+## 2026-05-15T06:54:58.103+01:00 — Release v0.2.0 (Language Migration Milestone)
+
+**Version Decision:** v0.2.0 selected as next minor release milestone.
+
+**Rationale:**
+- **Not v0.1.1:** More than a patch — canonical implementation migrated from VB.NET to C#, solution/workflows now package from `PDFFlatten.csproj`, validation lane moves to `.NET 10` while package stays `netstandard2.0`.
+- **Not v1.0.0:** Package scope unchanged; still pre-1.0 constrained utility, not production-safe for broad PDF coverage.
+
+**Release Posture:** Minor pre-1.0 milestone: implementation-language migration, tooling/workflow realignment, documentation refresh without public API break.
+
+**Release Actions Completed:**
+- Updated release metadata for v0.2.0
+- Committed on main (commit f641b76)
+- Pushed origin/main
+- Pushed tag v0.2.0
+- GitHub release created and NuGet publish succeeded
+- Release decision recorded in `decisions.md`
+
+**Scribe Processing (2026-05-15T05:54:58Z):**
+- Merged Impa's release decision from `.squad/decisions/inbox/impa-release-version-bump.md` into `decisions.md`
+- Orchestration log: `.squad/orchestration-log/2026-05-15T05-54-58Z-impa.md`
+- Session log: `.squad/log/2026-05-15T05-54-58Z-release-intake.md`
+- Updated Impa history with shared context
