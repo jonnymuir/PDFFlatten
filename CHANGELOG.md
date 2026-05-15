@@ -4,6 +4,8 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.1] - 2026-05-15T19:37:58.260+01:00
+
 ### Changed
 - Field-hierarchy boundary tightened: self-contained parent/child naming hierarchies remain supported, but widgets that inherit operative field attributes (`/FT`, `/DA`, `/DR`, `/V`) from parent field dictionaries now reject fail-closed with descriptive exceptions.
 
