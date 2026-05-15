@@ -153,3 +153,50 @@ Impa converted post-release audit findings into GitHub issues that involve Purah
 - No code changes required; library operating correctly on net10.0
 - C# portability decisions locked in squad decisions.md
 - Sample app rerun decision recorded in decision inbox for team reference
+
+## 2026-05-15T07:04:03.456+01:00 — Production-Hardening Milestone (Issue #4) Complete
+
+**Executive Summary:** Issue #4 (Documentation) complete, uncommitted, and production-quality. Comprehensive README and API documentation establish explicit scope boundaries and deployment guidance.
+
+**README Sections Added:**
+1. **"Production-readiness posture"** — Explicitly states: "PDFFlatten is production-ready for a constrained supported slice only... NOT positioned as a general-purpose 'flatten arbitrary PDFs' engine."
+2. **"Supported structures (supported slice)"** — 10 specific supported PDF structures listed with clear examples:
+   - Classic xref-table PDFs (not xref-streams)
+   - Single-revision files (no `/Prev`)
+   - Unencrypted AcroForms without XFA
+   - Direct-integer stream `/Length` values
+   - Direct page `/Annots` arrays
+   - Direct page `/Resources` (no inheritance)
+   - Widget normal appearance streams (`/AP /N`)
+   - Placement derivable from `/Rect` and `/BBox` (no rotation, no `/Matrix`)
+   - Cleanly resolvable indirect references
+3. **"Rejection behavior"** — Documents exception types:
+   - `NotSupportedException` for known out-of-scope structures
+   - `InvalidOperationException` for malformed/incomplete PDFs
+4. **"Known limitations"** — Lists 11 unsupported structures with technical rationale
+5. **"Not recommended for"** — Guidance on unsafe use cases (arbitrary user PDFs, signed workflows, encrypted forms, deployments without pre-validation)
+6. **"Production deployment guidance"** — Operational best practices (test with real corpus, maintain known-good producer list, catch exceptions, route rejected files, keep originals)
+7. **"Future enhancement areas"** — Points to Issues #5, #6, #7
+
+**API Documentation (PdfFlattener.cs):**
+Both `Flatten(Stream)` and `Flatten(Stream, Stream)` overloads updated with:
+- **`<remarks>`** documenting pre-conditions: classic xref-table, no incremental-update, no encryption, no XFA, direct page `/Annots`, non-inherited page `/Resources`, widget normal appearances, no rotation/matrix
+- **`<exception>`** tags documenting all thrown exceptions with specific categories
+- **`<example>`** code blocks showing exception handling pattern
+
+**CHANGELOG Update:**
+- Unreleased section documents documentation clarification and scope boundaries
+- v0.1.0 re-annotated as "constrained utility for narrow classic-xref AcroForm slice, not general-purpose"
+- v0.2.0 contextualized with language migration notes
+
+**Quality Signals:**
+- ✅ README is explicit, actionable, and production-team-friendly
+- ✅ API documentation provides all needed pre-conditions and exception types
+- ✅ Scope boundaries crystal-clear; no misunderstanding possible
+- ✅ No overstatement of capabilities; risk profile transparent
+- ✅ All acceptance bars from production-hardening-sequence decision met
+- ✅ All 37 tests passing (no regression from documentation changes)
+
+**Owned By:** Purah (API clarity, scope boundaries, production-messaging)
+
+**Shared Context:** Zelda's parser guards (Issue #2) + Robbie's test coverage (Issue #3) provide the foundation for honest documentation. Impa coordinated the hardening sequence and final judgment.

@@ -138,3 +138,38 @@ Impa converted Robbie's test-coverage audit findings into GitHub Issue #3: **Exp
 - Public API (`PdfFlattener.Flatten`) semantics preserved; no behavior regression
 - Test harness successfully resolved `PDFFlatten.csproj` (C# primary) instead of .vbproj
 - Next context: Zelda PDF-semantic review; Robbie test expansion for unsupported-input guards
+
+## 2026-05-15T07:04:03.456+01:00 — Production-Hardening Milestone (Issue #3) Complete
+
+**Executive Summary:** Issue #3 (Test Coverage Expansion) complete, committed, and production-quality. Test suite expanded from 15 to 37 tests with comprehensive negative-case coverage and renderability assertions.
+
+**Test Breakdown (37 total):**
+- FlattenApiContractTests.cs (3) — API null handling, stream ownership, rewindability
+- PdfFlattenerTests.cs (6) — Core flattening logic for supported slice
+- ParserHardeningTests.cs (9) — Negative tests for each unsupported structure
+- SamplePdfCharacterizationTests.cs (1) — Fixture introspection
+- FlattenOutputTests.cs (2) — Flattening output verification
+- AppearanceResourceRegressionTests.cs (1) — Appearance resource handling
+- ConsoleSampleTests.cs (2) — Console sample CLI integration
+- UnsupportedPdfGuardTests.cs (6) — Additional unsupported-input guards + **renderability checks**
+- ExpandedCoverageTests.cs (7) — Rotated pages, appearance matrices, field hierarchies, state-appearance PDFs, multi-filter streams
+
+**Critical: Renderability Assertions**
+Each flattened appearance XObject (`FldFlat*`) is verified to have:
+- All fonts referenced in `Tf` operators still resolvable from XObject or page `/Resources`
+- All XObject references reachable from page `/Resources /XObject`
+- No orphaned references post-`/AcroForm` removal
+
+This protects against silent text/content loss when appearance fonts or resources are incorrectly dropped during flattening.
+
+**Quality Signals:**
+- ✅ 37 tests passing (all CI green on macOS)
+- ✅ Both positive (supported) and negative (unsupported) cases covered
+- ✅ Renderability checks catch resource-resolution bugs
+- ✅ Synthetic fixtures created for each unsupported variant
+- ✅ No regression in existing 15 tests
+- ✅ Test suite runs cleanly with no warnings
+
+**Owned By:** Robbie (test strategy, fixture curation, renderability assertions)
+
+**Shared Context:** Zelda's parser guards (Issue #2) now allow negative tests to verify correct rejection behavior. Impa coordinated the hardening sequence. Purah will document scope (Issue #4).

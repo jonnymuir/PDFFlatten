@@ -76,3 +76,32 @@ All 15 regression tests passing. The flattening engine now repairs broken appear
 - 2026-05-15T06:16:04.770+01:00 — Coordinated with Purah for the C#/.NET port, then reviewed the translated PDF engine instead of re-implementing it; the port keeps the existing narrow flattening slice (`/AP /N` replay, widget removal, `/AcroForm` removal, reachable-object serialization) unchanged.
 - 2026-05-15T06:16:04.770+01:00 — Found and fixed C# translation regressions in regex/literal escaping (`PdfFlattener`, `PdfReader`, `PdfSerializer`, and the test literal decoder) before trusting any PDF review signal; those were port artifacts, not PDF-model changes.
 - 2026-05-15T06:16:04.770+01:00 — Verified semantic parity by comparing the flattened output for `GenericAcroFormFixture.pdf` against the pre-port HEAD implementation; hashes matched exactly, which is the strongest evidence that the language port did not subtly change current flattening behavior.
+
+## 2026-05-15T07:04:03.456+01:00 — Production-Hardening Milestone (Issue #2) Complete
+
+**Executive Summary:** Issue #2 (Parser Hardening) complete, committed, and production-quality. All 10 fail-closed guards in place; parser now safely rejects unsupported PDF structures.
+
+**Guards Implemented:**
+- `/Encrypt` — Rejects encrypted PDFs; "Encrypted PDFs are not supported; trailer /Encrypt must be absent."
+- `/XFA` — Rejects XFA forms; "XFA forms are not supported."
+- `/XRefStm` — Rejects xref-stream table format; "Cross-reference streams are not supported in this version."
+- `/ObjStm` — Rejects object streams; "Object streams (/ObjStm) are not supported."
+- Indirect stream `/Length` — Rejects indirect integer lengths; "Only streams with direct integer /Length values are supported."
+- Trailer `/Prev` — Rejects incremental-update PDFs; "Incremental-update PDFs are not supported; the trailer /Prev chain must be absent."
+- Indirect page `/Annots` — Rejects indirect annotation arrays; "Indirect page /Annots arrays are not supported."
+- State-based appearances — Rejects checkbox/radio state dictionaries; "Only indirect stream /AP /N appearances are supported; state dictionaries are not supported."
+- Unresolved references — Rejects during serialization; "PDF contains an unresolved indirect reference ({num} {gen} R)."
+- Inherited page `/Resources` — Rejects via `RejectInheritedPageResources()`; "Inherited page /Resources not supported; pages must have direct /Resources."
+
+**Test Coverage:** ParserHardeningTests.cs (9 negative tests) + UnsupportedPdfGuardTests.cs (6 negative tests). All guards validated with synthetic fixtures that trigger each rejection condition. All 15 existing regression tests still passing (30 total).
+
+**Quality Signals:**
+- ✅ Fail-closed behavior eliminates silent corruption risk
+- ✅ All guards throw early, before flattening attempt
+- ✅ Exception messages are production-friendly and actionable
+- ✅ Output for valid classic-xref AcroForm PDFs unchanged
+- ✅ No regression in supported-slice handling
+
+**Owned By:** Zelda (PDF-spec correctness, guard placement, exception clarity)
+
+**Shared Context:** Impa coordinated the overall production-hardening sequence. Robbie will expand test suite (Issue #3) to validate guards work correctly. Purah will document scope boundaries (Issue #4).
