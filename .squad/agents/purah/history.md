@@ -207,3 +207,9 @@ Both `Flatten(Stream)` and `Flatten(Stream, Stream)` overloads updated with:
 - Outcome: ✓ Success
 - Output: flattened.pdf (101 KB, MD5: e76ac3fba1d3b5ee238bbb524a103e21)
 - Status: Output ready for iPhone visibility check; no code changes required
+
+## 2026-05-15T10:53:30Z — Session Handoff: Sample App Rerun Complete
+
+**Orchestration:** Purah successfully executed the sample app against `/Users/jonnymuir/Downloads/BAPSL_P60_Populated.pdf` and refreshed `/Users/jonnymuir/Downloads/flattened.pdf` for phone visibility validation. No code changes required; library operating nominally on production PDF.
+
+**Status:** flattened.pdf ready for phone check. Team decision batch (Issues #5, #6, #7 follow-ons) merged into decisions.md; five duplicated inbox entries cleaned.
