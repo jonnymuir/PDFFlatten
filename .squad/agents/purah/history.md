@@ -128,3 +128,28 @@ Impa converted post-release audit findings into GitHub issues that involve Purah
 - **User preference:** Broaden language/runtime compatibility and documentation, but do not widen PDF support scope unless the semantic owner asks for it.
 - **Key file paths:** `src/PDFFlatten/PDFFlatten.csproj`, `src/PDFFlatten/PdfFlattener.cs`, `src/PDFFlatten/Internals/`, `samples/PDFFlatten.Sample/`, `README.md`, `.github/workflows/`.
 - **Handoff:** Zelda reserves PDF-semantic behavior review; Robbie owns test expansion for unsupported-input guards (GitHub Issue #3, post-#2).
+
+### 2026-05-15T06:16:04.770+01:00 — C# port completed without narrowing runtime reach
+
+**Context:** Jonny asked to move the maintained implementation from VB.NET to C# while keeping the package on `netstandard2.0`, improving code organization/docs, updating samples/README, and pushing tests onto `.NET 10`.
+
+**Work completed:**
+- Ported the library and sample from VB.NET to C#, keeping the reusable package on `netstandard2.0`.
+- Split the implementation into one class per file and added XML docs across the public API plus helpful summaries on core internal PDF model/parser types.
+- Updated the sample app, solution/project references, and README so the primary docs are C#-first while still showing VB.NET 4.6.2 consumption.
+- Checked Zelda-sensitive invariants before translation so page traversal, widget filtering, appearance reuse, font repair, parser tokenization, and serializer reachability stayed stable.
+- Moved the regression suite to `net10.0` so the current SDK path is the default verification lane.
+
+**Takeaway:** For portable .NET libraries, implementation language and consumer language are separate choices: keeping `netstandard2.0` preserves reach, while moving the codebase itself to idiomatic C# lowers maintenance friction without giving up Framework consumers.
+
+**Runtime note:** The library remains consumable from old Framework apps and current .NET apps, but local repo validation now assumes a .NET 10 SDK for the sample and test harness.
+
+## 2026-05-15 Session: Sample App Rerun & C# Migration Finalization
+
+**Context:** Purah's sample app rerun successful; decision batch captured and merged.
+
+- Reran `samples/PDFFlatten.Sample` with real-world PDF (`BAPSL_P60_Populated.pdf`, 107 KB)
+- Produced valid flattened output (101 KB, MD5: e76ac3fba1d3b5ee238bbb524a103e21)
+- No code changes required; library operating correctly on net10.0
+- C# portability decisions locked in squad decisions.md
+- Sample app rerun decision recorded in decision inbox for team reference

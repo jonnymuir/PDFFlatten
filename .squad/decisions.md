@@ -85,20 +85,23 @@
   - **Sequencing:** #2 unblocks #3; both complete before v0.2.0 production-readiness claim.
   - **Not addressed:** Appearance matrix rotation, field hierarchy flattening, producer-specific rendering quirks — tracked separately as future enhancements.
 
-### Purah (Language Port)
-- 2026-05-15T06:16:04.770+01:00 — C# netstandard library port.
-  - **What:** Port `src/PDFFlatten` from VB.NET to C# while keeping the package on `netstandard2.0`, move the solution/workflows/docs to `PDFFlatten.csproj`, and keep the sample/test surface aligned with the C# source layout.
-  - **Why:** Jonny asked for C# source without sacrificing .NET Framework/current .NET reach. Keeping `netstandard2.0` preserves the compatibility matrix.
-  - **Outcome:** Ported one-class-per-file, updated solution/sample/docs/squad artifacts, validated build/test/pack successfully. Semantics and scope unchanged; PDF-semantic review reserved for Zelda.
+## 2026-05-15 Batch
 
-### Robbie (Test/CI Migration)
-- 2026-05-15T06:16:04.770+01:00 — Net10 test migration guardrails.
-  - **What:** Moved `tests/PDFFlatten.Tests` to `net10.0`, kept the regression intent unchanged, and made the test wiring tolerant of the in-flight language port by resolving `PDFFlatten.csproj` first and falling back to `PDFFlatten.vbproj` only if the C# project is not present yet. Moved the sample CLI test output under `artifacts/test-output/...` so the suite stops writing under the test bin folder.
-  - **Why:** Quality gate follows the C# migration without forcing concurrent edits. Sample smoke test needs a stable output path on `net10.0`.
+### Impa (C# .NET Leadership)
+- 2026-05-15T06:16:04.770+01:00 — Keep PDFFlatten as a `netstandard2.0` package for consumer reach, but treat C# as the canonical implementation language going forward. Standardize on `src/PDFFlatten/PDFFlatten.csproj`, one class per file, strong XML docs on the public API, and squad routing that explicitly favors C#/.NET Standard compatibility judgment. README examples should show both modern .NET usage and VB.NET on .NET Framework 4.6.2 so consumers understand the cross-runtime story. Repo-level executable validation (tests/sample/CI) may track `net10.0` as the current SDK lane without changing the package target.
 
-- 2026-05-15T06:16:04.770+01:00 — Sample/docs coverage judgment for the C# port.
-  - **What:** Kept the existing CLI integration coverage as the executable proof for the sample app after the port. Did not add README-snippet compilation tests; current documentation examples still exercise the same `PdfFlattener.Flatten` contract already covered by the API and sample tests.
-  - **Why:** Test coverage protects behavior, not maintenance tax. Meaningful regression risk is "does the shipped sample still run end-to-end?" — that path is now green on `net10.0`.
+### Purah (C# Portability & Language Migration)
+- 2026-05-15T06:16:04.770+01:00 — Port `src/PDFFlatten` from VB.NET to C# while keeping the package on `netstandard2.0`, move the solution/workflows/docs to `PDFFlatten.csproj`, and keep the sample/test surface aligned with the C# source layout. Ported one-class-per-file, updated solution/sample/docs/squad artifacts, validated build/test/pack successfully. Semantics and scope unchanged; PDF-semantic review reserved for Zelda.
+
+### Zelda (C# Port PDF-Semantic Parity)
+- 2026-05-15T06:16:04.770+01:00 — Reviewed Purah's VB-to-C# port of the PDF engine and locked the PDF-specific rule that the port is a language/runtime migration only: `netstandard2.0` stays in place, the AcroForm flattening algorithm stays the same, and the supported PDF slice does not widen or narrow unless explicitly re-decided. Fixed C# translation regressions in regex and literal escaping that broke compilation. Validated semantic parity by rebuilding, running the full 15-test suite on `net10.0`, and comparing the flattened output for `GenericAcroFormFixture.pdf` against pre-port HEAD byte-for-byte; outputs are identical.
+
+### Robbie (Test Migration & Sample CI)
+- 2026-05-15T06:16:04.770+01:00 — Moved `tests/PDFFlatten.Tests` to `net10.0`, kept the regression intent unchanged, and made the test wiring tolerant of the in-flight language port by resolving `PDFFlatten.csproj` first and falling back to `PDFFlatten.vbproj` only if C# not yet present. Moved sample CLI test output under `artifacts/test-output/...` so suite stops writing under the test bin folder.
+- 2026-05-15T06:16:04.770+01:00 — Kept existing CLI integration coverage as executable proof for the sample app after the port. Did not add README-snippet compilation tests; current documentation examples still exercise `PdfFlattener.Flatten` contract already covered by API and sample tests.
+
+### Purah (Sample App Rerun)
+- 2026-05-15T06:45:43.234+01:00 — C# console sample rerun against `BAPSL_P60_Populated.pdf` confirmed successful library operation without code changes. Input: 107 KB populated real-world PDF; Output: 101 KB valid flattened PDF (MD5: `e76ac3fba1d3b5ee238bbb524a103e21`). The .NET 10.0 target framework, file I/O, and flattening operation all working correctly.
 
 ## Governance
 
