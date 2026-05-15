@@ -18,10 +18,13 @@
       <PrivateAssets>all</PrivateAssets>
       <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
     </PackageReference>
+    <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
   </ItemGroup>
 
   <ItemGroup>
     <ProjectReference Include="..\..\src\PDFFlatten\PDFFlatten.csproj" />
     <None Include="..\..\GenericAcroFormFixture.pdf" Link="GenericAcroFormFixture.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/ProducerCorpus/**/*.pdf" CopyToOutputDirectory="PreserveNewest" />
+    <None Update="Fixtures/ProducerCorpus/provenance.json" CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 </Project>

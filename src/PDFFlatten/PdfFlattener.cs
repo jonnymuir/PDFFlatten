@@ -15,6 +15,7 @@ namespace PDFFlatten;
 /// </summary>
 public static class PdfFlattener
 {
+    private static readonly string[] UnsupportedInheritedFieldAttributeKeys = { "FT", "DA", "DR", "V" };
     private static readonly Regex FontOperatorRegex = new(
         @"/(?<font>[^\s/]+)\s+[-+]?(?:\d+(?:\.\d+)?|\.\d+)\s+Tf",
         RegexOptions.CultureInvariant);
@@ -25,7 +26,7 @@ public static class PdfFlattener
     /// <param name="input">A readable stream containing the source PDF.</param>
     /// <returns>A rewindable stream positioned at the beginning of the flattened PDF.</returns>
     /// <remarks>
-    /// <para>PDFFlatten is production-ready only for a constrained slice of AcroForm PDFs: classic xref-table files, no incremental-update trailer chain, no encryption, no XFA, direct page <c>/Annots</c>, non-inherited page <c>/Resources</c>, and widget normal appearances that resolve to a single indirect stream at <c>/AP /N</c> without rotation or <c>/Matrix</c> transforms.</para>
+    /// <para>PDFFlatten is production-ready only for a constrained slice of AcroForm PDFs: classic xref-table files, no incremental-update trailer chain, no encryption, no XFA, direct page <c>/Annots</c>, non-inherited page <c>/Resources</c>, self-contained widget/terminal-field dictionaries for operative field attributes (<c>/FT</c>, <c>/DA</c>, <c>/DR</c>, <c>/V</c>), and widget normal appearances that resolve to a single indirect stream at <c>/AP /N</c> without rotation or <c>/Matrix</c> transforms.</para>
     /// <para>Inputs outside that slice fail closed with descriptive exceptions instead of a best-effort rewrite. PDFs with no AcroForm/widgets are returned unchanged.</para>
     /// <para>Caller-owned streams remain open.</para>
     /// </remarks>
@@ -51,7 +52,7 @@ public static class PdfFlattener
     /// </example>
     /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="input"/> is not readable.</exception>
-    /// <exception cref="NotSupportedException">The PDF uses known-unsupported structures such as xref streams, object streams, incremental updates, encryption, XFA, inherited page resources, indirect page annotations, non-stream widget normal appearances, or unsupported transforms.</exception>
+    /// <exception cref="NotSupportedException">The PDF uses known-unsupported structures such as xref streams, object streams, incremental updates, encryption, XFA, inherited page resources, inherited operative field attributes, indirect page annotations, non-stream widget normal appearances, or unsupported transforms.</exception>
     /// <exception cref="InvalidOperationException">The PDF is malformed or incomplete for the supported classic-parser slice.</exception>
     public static Stream Flatten(Stream input)
     {
@@ -83,7 +84,7 @@ public static class PdfFlattener
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="input"/> or <paramref name="output"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="input"/> is not readable or <paramref name="output"/> is not writable.</exception>
-    /// <exception cref="NotSupportedException">The PDF uses known-unsupported structures such as xref streams, object streams, incremental updates, encryption, XFA, inherited page resources, indirect page annotations, non-stream widget normal appearances, unresolved indirect references, or unsupported transforms.</exception>
+    /// <exception cref="NotSupportedException">The PDF uses known-unsupported structures such as xref streams, object streams, incremental updates, encryption, XFA, inherited page resources, inherited operative field attributes, indirect page annotations, non-stream widget normal appearances, unresolved indirect references, or unsupported transforms.</exception>
     /// <exception cref="InvalidOperationException">The PDF is malformed or incomplete for the supported classic-parser slice.</exception>
     public static void Flatten(Stream input, Stream output)
     {
@@ -248,6 +249,7 @@ public static class PdfFlattener
 
     private static FlattenPlacement CreatePlacement(PdfDocument document, PdfDictionary annotation, int placementIndex)
     {
+        RejectInheritedFieldAttributes(document, annotation);
         var rect = annotation.RequireArray("Rect");
         if (rect.Items.Count != 4)
         {
@@ -559,6 +561,87 @@ public static class PdfFlattener
 
         value = literal.Value;
         return true;
+    }
+
+    private static void RejectInheritedFieldAttributes(PdfDocument document, PdfDictionary annotation)
+    {
+        foreach (var key in UnsupportedInheritedFieldAttributeKeys)
+        {
+            if (annotation.TryGetValue(key, out _))
+            {
+                continue;
+            }
+
+            if (!TryResolveInheritedFieldValue(document, annotation, key, out _))
+            {
+                continue;
+            }
+
+            throw new NotSupportedException(
+                $"Inherited field attribute /{key} is not supported for widget field '{GetFieldDisplayName(document, annotation)}'; operative field attributes must be self-contained on the terminal field/widget dictionary.");
+        }
+    }
+
+    private static string GetFieldDisplayName(PdfDocument document, PdfDictionary annotation)
+    {
+        var names = new Stack<string>();
+        var current = annotation;
+
+        while (true)
+        {
+            if (TryGetPartialFieldName(current, out var partialName) && partialName.Length > 0)
+            {
+                names.Push(partialName);
+            }
+
+            if (TryResolveDictionary(document, current, "Parent") is not { } parent)
+            {
+                break;
+            }
+
+            current = parent;
+        }
+
+        return names.Count == 0 ? "<unnamed field>" : string.Join(".", names);
+    }
+
+    private static bool TryGetPartialFieldName(PdfDictionary dictionary, out string value)
+    {
+        value = string.Empty;
+        if (!dictionary.TryGetValue("T", out var rawValue))
+        {
+            return false;
+        }
+
+        switch (rawValue)
+        {
+            case PdfLiteralString literal:
+                value = literal.Value;
+                return true;
+            case PdfHexString hex:
+                value = hex.Value;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    private static bool TryResolveInheritedFieldValue(PdfDocument document, PdfDictionary dictionary, string key, out PdfValue? value)
+    {
+        value = null;
+        var current = dictionary;
+        while (TryResolveDictionary(document, current, "Parent") is { } parent)
+        {
+            if (parent.TryGetValue(key, out value))
+            {
+                return true;
+            }
+
+            current = parent;
+        }
+
+        value = null;
+        return false;
     }
 
     private static PdfDictionary? CreateStandardFont(string fontName)

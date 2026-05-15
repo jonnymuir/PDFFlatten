@@ -67,6 +67,42 @@ public sealed partial class ExpandedCoverageTests
     }
 
     [Test]
+    public void Flatten_rejects_widgets_with_inherited_field_type()
+    {
+        AssertRejects(
+            SyntheticCoverageFixtureFactory.CreateInheritedFieldTypePdf(),
+            "/FT",
+            "Group.Child");
+    }
+
+    [Test]
+    public void Flatten_rejects_widgets_with_inherited_default_appearance()
+    {
+        AssertRejects(
+            SyntheticCoverageFixtureFactory.CreateInheritedDefaultAppearancePdf(),
+            "/DA",
+            "Group.Child");
+    }
+
+    [Test]
+    public void Flatten_rejects_widgets_with_inherited_default_resources()
+    {
+        AssertRejects(
+            SyntheticCoverageFixtureFactory.CreateInheritedDefaultResourcesPdf(),
+            "/DR",
+            "Group.Child");
+    }
+
+    [Test]
+    public void Flatten_rejects_widgets_with_inherited_value()
+    {
+        AssertRejects(
+            SyntheticCoverageFixtureFactory.CreateInheritedValuePdf(),
+            "/V",
+            "Group");
+    }
+
+    [Test]
     public void Flatten_preserves_multi_filter_widget_appearances()
     {
         using var input = new MemoryStream(SyntheticCoverageFixtureFactory.CreateMultiFilterAppearancePdf(), writable: false);
@@ -132,7 +168,7 @@ public sealed partial class ExpandedCoverageTests
         }
     }
 
-    private static void AssertRejects(byte[] pdfBytes, string expectedMessageFragment)
+    private static void AssertRejects(byte[] pdfBytes, params string[] expectedMessageFragments)
     {
         using var input = new MemoryStream(pdfBytes, writable: false);
 
@@ -141,7 +177,10 @@ public sealed partial class ExpandedCoverageTests
             using var _ = PdfFlattener.Flatten(input);
         });
 
-        Assert.That(exception!.Message, Does.Contain(expectedMessageFragment));
+        foreach (var expectedMessageFragment in expectedMessageFragments)
+        {
+            Assert.That(exception!.Message, Does.Contain(expectedMessageFragment));
+        }
     }
 
     private static PdfDictionary GetFirstPage(PdfDocument document, PdfDictionary catalog)
@@ -369,6 +408,70 @@ public sealed partial class ExpandedCoverageTests
                 [5] = "<</Font <</F1 10 0 R>> /XObject <<>>>>",
                 [6] = "<</T (Group) /Kids [7 0 R]>>",
                 [7] = "<</Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 120 44] /FT /Tx /T (Child) /V (Hierarchy Value) /AP <</N 8 0 R>>>>",
+                [8] = Stream("q 0 0 100 24 re W n BT /F1 12 Tf 2 8 Td (Hierarchy Value) Tj ET Q", "/Type /XObject /Subtype /Form /BBox [0 0 100 24] /Resources <</Font <</F1 10 0 R>>>>"),
+                [10] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica>>"
+            });
+        }
+
+        public static byte[] CreateInheritedFieldTypePdf()
+        {
+            return BuildPdf(new Dictionary<int, string>
+            {
+                [1] = "<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R]>>>>",
+                [2] = "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+                [3] = "<</Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources 5 0 R /Annots [7 0 R] /Contents 4 0 R>>",
+                [4] = Stream("q Q"),
+                [5] = "<</XObject <<>>>>",
+                [6] = "<</T (Group) /FT /Tx /Kids [7 0 R]>>",
+                [7] = "<</Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 120 44] /T (Child) /V (Hierarchy Value) /AP <</N 8 0 R>>>>",
+                [8] = Stream("q 0 0 100 24 re W n BT /F1 12 Tf 2 8 Td (Hierarchy Value) Tj ET Q", "/Type /XObject /Subtype /Form /BBox [0 0 100 24] /Resources <</Font <</F1 10 0 R>>>>"),
+                [10] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica>>"
+            });
+        }
+
+        public static byte[] CreateInheritedDefaultAppearancePdf()
+        {
+            return BuildPdf(new Dictionary<int, string>
+            {
+                [1] = "<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R]>>>>",
+                [2] = "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+                [3] = "<</Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources 5 0 R /Annots [7 0 R] /Contents 4 0 R>>",
+                [4] = Stream("q Q"),
+                [5] = "<</XObject <<>>>>",
+                [6] = "<</T (Group) /DA (/Helv 12 Tf 0 g) /Kids [7 0 R]>>",
+                [7] = "<</Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 120 44] /FT /Tx /T (Child) /V (Hierarchy Value) /DR <</Font <</Helv 10 0 R>>>> /AP <</N 8 0 R>>>>",
+                [8] = Stream("q 0 0 100 24 re W n BT /BadFont 12 Tf 2 8 Td (Hierarchy Value) Tj ET Q", "/Type /XObject /Subtype /Form /BBox [0 0 100 24]"),
+                [10] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica>>"
+            });
+        }
+
+        public static byte[] CreateInheritedDefaultResourcesPdf()
+        {
+            return BuildPdf(new Dictionary<int, string>
+            {
+                [1] = "<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R]>>>>",
+                [2] = "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+                [3] = "<</Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources 5 0 R /Annots [7 0 R] /Contents 4 0 R>>",
+                [4] = Stream("q Q"),
+                [5] = "<</XObject <<>>>>",
+                [6] = "<</T (Group) /DR <</Font <</Helv 10 0 R>>>> /Kids [7 0 R]>>",
+                [7] = "<</Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 120 44] /FT /Tx /T (Child) /V (Hierarchy Value) /DA (/Helv 12 Tf 0 g) /AP <</N 8 0 R>>>>",
+                [8] = Stream("q 0 0 100 24 re W n BT /BadFont 12 Tf 2 8 Td (Hierarchy Value) Tj ET Q", "/Type /XObject /Subtype /Form /BBox [0 0 100 24]"),
+                [10] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica>>"
+            });
+        }
+
+        public static byte[] CreateInheritedValuePdf()
+        {
+            return BuildPdf(new Dictionary<int, string>
+            {
+                [1] = "<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R]>>>>",
+                [2] = "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+                [3] = "<</Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources 5 0 R /Annots [7 0 R] /Contents 4 0 R>>",
+                [4] = Stream("q Q"),
+                [5] = "<</XObject <<>>>>",
+                [6] = "<</T (Group) /V (Hierarchy Value) /Kids [7 0 R]>>",
+                [7] = "<</Type /Annot /Subtype /Widget /Parent 6 0 R /Rect [20 20 120 44] /FT /Tx /AP <</N 8 0 R>>>>",
                 [8] = Stream("q 0 0 100 24 re W n BT /F1 12 Tf 2 8 Td (Hierarchy Value) Tj ET Q", "/Type /XObject /Subtype /Form /BBox [0 0 100 24] /Resources <</Font <</F1 10 0 R>>>>"),
                 [10] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica>>"
             });

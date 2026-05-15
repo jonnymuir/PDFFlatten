@@ -4,6 +4,13 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Changed
+- Field-hierarchy boundary tightened: self-contained parent/child naming hierarchies remain supported, but widgets that inherit operative field attributes (`/FT`, `/DA`, `/DR`, `/V`) from parent field dictionaries now reject fail-closed with descriptive exceptions.
+
+### Added
+- Synthetic regression coverage for inherited field-attribute hierarchies, including `/FT`, `/DA`, `/DR`, `/V`, and fully-qualified partial-name reporting in rejection messages.
+- A checked-in, non-sensitive producer fixture corpus (`reportlab`, `pdfrw`, `pypdf`) with provenance/sanitization metadata and regression tests covering both supported classic-xref inputs and intentional fail-closed rejections.
+
 ## [0.3.0] - 2026-05-15T08:29:23.433+01:00
 
 ### Added

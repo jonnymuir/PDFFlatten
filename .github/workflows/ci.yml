@@ -52,3 +52,33 @@ jobs:
         with:
           name: packages
           path: artifacts/*.*nupkg
+
+  visual-regression:
+    runs-on: macos-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 10.0.x
+
+      - name: Restore
+        run: dotnet restore PDFFlatten.sln
+
+      - name: Build
+        run: dotnet build PDFFlatten.sln --configuration Release --no-restore
+
+      - name: Test
+        run: dotnet test PDFFlatten.sln --configuration Release --no-build
+
+      - name: Upload visual artifacts
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: visual-regression-artifacts
+          path: artifacts/test-output/visual-equivalence/**
