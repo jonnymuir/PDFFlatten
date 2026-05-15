@@ -200,3 +200,10 @@ Both `Flatten(Stream)` and `Flatten(Stream, Stream)` overloads updated with:
 **Owned By:** Purah (API clarity, scope boundaries, production-messaging)
 
 **Shared Context:** Zelda's parser guards (Issue #2) + Robbie's test coverage (Issue #3) provide the foundation for honest documentation. Impa coordinated the hardening sequence and final judgment.
+
+## 2026-05-15 Sample App Rerun
+- Date: 2026-05-15T07:25:15Z
+- Task: Rerun C# console sample on BAPSL_P60_Populated.pdf
+- Outcome: ✓ Success
+- Output: flattened.pdf (101 KB, MD5: e76ac3fba1d3b5ee238bbb524a103e21)
+- Status: Output ready for iPhone visibility check; no code changes required
