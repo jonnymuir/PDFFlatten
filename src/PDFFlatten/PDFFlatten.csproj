@@ -17,7 +17,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>Follow-on field-attribute hardening: widgets that inherit operative field attributes from parent field dictionaries now reject fail-closed with descriptive exceptions. Added producer fixture corpus (reportlab, pdfrw, pypdf) with provenance metadata and regression tests. All 37 tests passing; production-ready for classic AcroForm PDFs with direct page annotations and no inherited operative field attributes.</PackageReleaseNotes>
+    <PackageReleaseNotes>Follow-on field-attribute hardening: widgets that inherit operative field attributes from parent field dictionaries now reject fail-closed with descriptive exceptions. Added producer fixture corpus (reportlab, pdfrw, pypdf) with provenance metadata and regression tests. All 53 tests passing; production-ready for classic AcroForm PDFs with direct page annotations and no inherited operative field attributes.</PackageReleaseNotes>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
