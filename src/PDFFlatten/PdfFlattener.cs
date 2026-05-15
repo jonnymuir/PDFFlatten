@@ -22,9 +22,37 @@ public static class PdfFlattener
     /// <summary>
     /// Returns a flattened copy of the PDF in <paramref name="input"/>.
     /// </summary>
-    /// <param name="input">The source PDF stream.</param>
+    /// <param name="input">A readable stream containing the source PDF.</param>
     /// <returns>A rewindable stream positioned at the beginning of the flattened PDF.</returns>
-    /// <remarks>Caller-owned streams remain open.</remarks>
+    /// <remarks>
+    /// <para>PDFFlatten is production-ready only for a constrained slice of AcroForm PDFs: classic xref-table files, no incremental-update trailer chain, no encryption, no XFA, direct page <c>/Annots</c>, non-inherited page <c>/Resources</c>, and widget normal appearances that resolve to a single indirect stream at <c>/AP /N</c> without rotation or <c>/Matrix</c> transforms.</para>
+    /// <para>Inputs outside that slice fail closed with descriptive exceptions instead of a best-effort rewrite. PDFs with no AcroForm/widgets are returned unchanged.</para>
+    /// <para>Caller-owned streams remain open.</para>
+    /// </remarks>
+    /// <example>
+    /// <code>
+    /// using System;
+    /// using System.IO;
+    /// using PDFFlatten;
+    ///
+    /// using Stream input = File.OpenRead("classic-acroform.pdf");
+    ///
+    /// try
+    /// {
+    ///     using Stream flattened = PdfFlattener.Flatten(input);
+    ///     using Stream output = File.Create("flattened.pdf");
+    ///     flattened.CopyTo(output);
+    /// }
+    /// catch (NotSupportedException)
+    /// {
+    ///     // The PDF is outside PDFFlatten's supported slice.
+    /// }
+    /// </code>
+    /// </example>
+    /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="input"/> is not readable.</exception>
+    /// <exception cref="NotSupportedException">The PDF uses known-unsupported structures such as xref streams, object streams, incremental updates, encryption, XFA, inherited page resources, indirect page annotations, non-stream widget normal appearances, or unsupported transforms.</exception>
+    /// <exception cref="InvalidOperationException">The PDF is malformed or incomplete for the supported classic-parser slice.</exception>
     public static Stream Flatten(Stream input)
     {
         if (input is null)
@@ -46,9 +74,17 @@ public static class PdfFlattener
     /// <summary>
     /// Writes a flattened copy of the PDF from <paramref name="input"/> into <paramref name="output"/>.
     /// </summary>
-    /// <param name="input">The source PDF stream.</param>
-    /// <param name="output">The destination stream that receives the flattened PDF.</param>
-    /// <remarks>Caller-owned streams remain open. The output stream is left at the end of the written PDF.</remarks>
+    /// <param name="input">A readable stream containing the source PDF.</param>
+    /// <param name="output">A writable stream that receives the flattened PDF.</param>
+    /// <remarks>
+    /// <para>The same supported-slice preconditions as <see cref="Flatten(Stream)"/> apply.</para>
+    /// <para>PDFFlatten rejects known-unsupported structures with descriptive exceptions before writing output bytes, rather than emitting a best-effort partial rewrite.</para>
+    /// <para>Caller-owned streams remain open. The output stream is left at the end of the written PDF.</para>
+    /// </remarks>
+    /// <exception cref="ArgumentNullException"><paramref name="input"/> or <paramref name="output"/> is <see langword="null"/>.</exception>
+    /// <exception cref="ArgumentException"><paramref name="input"/> is not readable or <paramref name="output"/> is not writable.</exception>
+    /// <exception cref="NotSupportedException">The PDF uses known-unsupported structures such as xref streams, object streams, incremental updates, encryption, XFA, inherited page resources, indirect page annotations, non-stream widget normal appearances, unresolved indirect references, or unsupported transforms.</exception>
+    /// <exception cref="InvalidOperationException">The PDF is malformed or incomplete for the supported classic-parser slice.</exception>
     public static void Flatten(Stream input, Stream output)
     {
         if (input is null)
@@ -81,6 +117,7 @@ public static class PdfFlattener
     {
         var catalogReference = document.Trailer.RequireReference("Root");
         var catalog = document.GetRequiredDictionary(catalogReference);
+        RejectUnsupportedCatalog(document, catalog);
         var pagesReference = catalog.RequireReference("Pages");
         var widgetsFlattened = 0;
         var placementIndex = 0;
@@ -140,7 +177,7 @@ public static class PdfFlattener
 
         if (annotsValue is not PdfArray annots)
         {
-            throw new NotSupportedException("Only direct annotation arrays are supported.");
+            throw new NotSupportedException("Indirect page /Annots arrays are not supported.");
         }
 
         var remainingAnnotations = new List<PdfValue>();
@@ -171,6 +208,8 @@ public static class PdfFlattener
             return 0;
         }
 
+        RejectUnsupportedPageRotation(document, page);
+        RejectInheritedPageResources(document, page);
         var resources = ResolveResourceDictionary(document, page);
         var xObjectDictionary = ResolveNestedDictionary(document, resources, "XObject");
         var contentBuilder = new StringBuilder();
@@ -216,8 +255,18 @@ public static class PdfFlattener
         }
 
         var appearanceDictionary = annotation.RequireDictionary("AP");
-        var normalAppearanceReference = appearanceDictionary.RequireReference("N");
+        if (!appearanceDictionary.TryGetValue("N", out var normalAppearanceValue))
+        {
+            throw new NotSupportedException("Widget annotations must define a normal appearance at /AP /N.");
+        }
+
+        if (normalAppearanceValue is not PdfIndirectReference normalAppearanceReference)
+        {
+            throw new NotSupportedException("Only indirect stream /AP /N appearances are supported; state dictionaries are not supported.");
+        }
+
         var normalAppearance = document.GetRequiredStream(normalAppearanceReference);
+        RejectUnsupportedAppearanceMatrix(normalAppearance);
         RepairTextAppearanceResources(document, annotation, normalAppearance);
 
         var box = normalAppearance.Dictionary.RequireArray("BBox");
@@ -452,6 +501,36 @@ public static class PdfFlattener
         return value as PdfDictionary;
     }
 
+    private static bool TryResolveInteger(PdfDocument document, PdfDictionary parent, string key, out int value)
+    {
+        value = 0;
+        if (!parent.TryGetValue(key, out var rawValue))
+        {
+            return false;
+        }
+
+        var resolvedValue = rawValue;
+        if (rawValue is PdfIndirectReference reference)
+        {
+            try
+            {
+                resolvedValue = document.GetRequiredObject(reference).Value;
+            }
+            catch (InvalidOperationException ex)
+            {
+                throw new NotSupportedException($"Dictionary key /{key} must resolve to an integer.", ex);
+            }
+        }
+
+        if (resolvedValue is not PdfNumber number || !number.IsInteger)
+        {
+            throw new NotSupportedException($"Dictionary key /{key} must resolve to an integer.");
+        }
+
+        value = (int)number.NumericValue;
+        return true;
+    }
+
     private static PdfDictionary ResolveOrCreateNestedDictionary(PdfDocument document, PdfDictionary parent, string key)
     {
         var existing = TryResolveDictionary(document, parent, key);
@@ -520,6 +599,79 @@ public static class PdfFlattener
         }
 
         return font;
+    }
+
+    private static void RejectUnsupportedCatalog(PdfDocument document, PdfDictionary catalog)
+    {
+        var acroForm = TryResolveDictionary(document, catalog, "AcroForm");
+        if (acroForm is not null && acroForm.TryGetValue("XFA", out _))
+        {
+            throw new NotSupportedException("XFA forms are not supported.");
+        }
+    }
+
+    private static void RejectUnsupportedPageRotation(PdfDocument document, PdfDictionary page)
+    {
+        var current = page;
+        while (true)
+        {
+            if (TryResolveInteger(document, current, "Rotate", out var rotation))
+            {
+                var normalized = ((rotation % 360) + 360) % 360;
+                if (normalized != 0)
+                {
+                    throw new NotSupportedException("Pages with non-zero /Rotate values are not supported.");
+                }
+            }
+
+            if (TryResolveDictionary(document, current, "Parent") is not { } parent)
+            {
+                break;
+            }
+
+            current = parent;
+        }
+    }
+
+    private static void RejectUnsupportedAppearanceMatrix(PdfStream appearance)
+    {
+        if (!appearance.Dictionary.TryGetValue("Matrix", out var matrixValue))
+        {
+            return;
+        }
+
+        if (matrixValue is not PdfArray matrix || matrix.Items.Count != 6)
+        {
+            throw new NotSupportedException("Appearance /Matrix transforms are not supported.");
+        }
+
+        var expectedIdentity = new[] { 1d, 0d, 0d, 1d, 0d, 0d };
+        for (var index = 0; index < expectedIdentity.Length; index++)
+        {
+            if (Math.Abs(PdfValueConversions.RequireNumber(matrix.Items[index]) - expectedIdentity[index]) > 0.0001)
+            {
+                throw new NotSupportedException("Appearance /Matrix transforms are not supported.");
+            }
+        }
+    }
+
+    private static void RejectInheritedPageResources(PdfDocument document, PdfDictionary page)
+    {
+        if (page.TryGetValue("Resources", out _))
+        {
+            return;
+        }
+
+        var current = page;
+        while (TryResolveDictionary(document, current, "Parent") is { } parent)
+        {
+            if (parent.TryGetValue("Resources", out _))
+            {
+                throw new NotSupportedException("Pages that inherit /Resources are not supported because flattening could shadow ancestor resources.");
+            }
+
+            current = parent;
+        }
     }
 
     private static PdfDictionary ResolveResourceDictionary(PdfDocument document, PdfDictionary page)

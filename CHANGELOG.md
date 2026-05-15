@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+### Documentation
+- Clarified the production-readiness boundary: PDFFlatten is production-ready for the supported classic-AcroForm slice only, not for arbitrary PDFs. README and API XML docs now spell out supported structures, rejection behavior, known limitations, not-recommended usage, and deployment guidance.
+- Added concise references to follow-on enhancement areas: issue #5 (multi-producer fixture corpus), issue #6 (renderer/viewer equivalence), and issue #7 (inherited field-attribute hierarchies).
+
 ## [0.2.0] - 2026-05-15T06:54:58.103+01:00
 
 ### Changed
@@ -19,3 +23,6 @@ All notable changes to this project will be documented in this file.
 - First public `PdfFlattener` API
 - Stream-to-stream and stream-returning flatten overloads
 - Initial generic synthetic fixture coverage for AcroForm flattening
+
+### Release posture
+- Shipped as a constrained utility for a narrow classic-xref AcroForm slice, not as a general-purpose arbitrary-PDF flattening engine.

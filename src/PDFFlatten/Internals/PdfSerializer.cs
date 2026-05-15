@@ -100,9 +100,11 @@ internal static class PdfSerializer
                 {
                     target = document.GetRequiredObject(reference);
                 }
-                catch (InvalidOperationException)
+                catch (InvalidOperationException ex)
                 {
-                    return;
+                    throw new NotSupportedException(
+                        $"PDF contains an unresolved indirect reference ({reference.ObjectNumber} {reference.Generation} R).",
+                        ex);
                 }
 
                 MarkReachable(document, target.Value, reachable);

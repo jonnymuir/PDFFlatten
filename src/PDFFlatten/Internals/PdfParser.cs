@@ -25,12 +25,15 @@ internal static class PdfParser
 
         var startXref = FindStartXref(data);
         var parsedXref = ParseXref(data, startXref);
+        RejectUnsupportedTrailer(parsedXref.Trailer);
         var firstObjectOffset = parsedXref.Entries.Values.Where(entry => entry.InUse).Min(entry => entry.Offset);
         var objects = new List<PdfIndirectObject>();
 
         foreach (var entry in parsedXref.Entries.Values.Where(item => item.InUse).OrderBy(item => item.ObjectNumber))
         {
-            objects.Add(ParseObject(data, entry.Offset));
+            var pdfObject = ParseObject(data, entry.Offset);
+            RejectUnsupportedObject(pdfObject);
+            objects.Add(pdfObject);
         }
 
         var preamble = new byte[firstObjectOffset];
@@ -199,6 +202,39 @@ internal static class PdfParser
         }
 
         return new PdfIndirectObject(objectNumber, generation, value);
+    }
+
+    private static void RejectUnsupportedTrailer(PdfDictionary trailer)
+    {
+        if (trailer.TryGetValue("Prev", out _))
+        {
+            throw new NotSupportedException("Incremental-update PDFs are not supported; the trailer /Prev chain must be absent.");
+        }
+
+        if (trailer.TryGetValue("Encrypt", out _))
+        {
+            throw new NotSupportedException("Encrypted PDFs are not supported; trailer /Encrypt must be absent.");
+        }
+
+        if (trailer.TryGetValue("XRefStm", out _))
+        {
+            throw new NotSupportedException("Hybrid-reference PDFs with /XRefStm are not supported.");
+        }
+    }
+
+    private static void RejectUnsupportedObject(PdfIndirectObject pdfObject)
+    {
+        if (pdfObject.Value is not PdfStream stream)
+        {
+            return;
+        }
+
+        if (stream.Dictionary.TryGetValue("Type", out var typeValue)
+            && typeValue is PdfName typeName
+            && string.Equals(typeName.Value, "ObjStm", StringComparison.Ordinal))
+        {
+            throw new NotSupportedException("Object streams (/ObjStm) are not supported.");
+        }
     }
 
     private static string ReadSimpleToken(byte[] data, ref int position)

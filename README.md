@@ -93,15 +93,72 @@ dotnet run --project samples/PDFFlatten.Sample -- GenericAcroFormFixture.pdf Gen
 
 The sample targets `net10.0` so local smoke tests run on the current SDK, while the reusable package remains `netstandard2.0` for consumer reach.
 
-## Supported scope in v0.1
+## Production-readiness posture
 
-PDFFlatten currently targets a practical first slice:
+PDFFlatten is **production-ready for a constrained supported slice only**. If your PDFs stay inside the supported structures below and you validate them against your own corpus, this library is a reasonable production dependency. It is **not** positioned as a general-purpose "flatten arbitrary PDFs" engine.
 
-- classic cross-reference-table PDFs
-- AcroForm widget annotations with normal appearance streams (`/AP /N`)
-- flattening by replaying those appearance streams onto the page content
+## Supported structures (supported slice)
 
-That covers the included synthetic AcroForm fixture and keeps the public API stable while the engine grows.
+PDFFlatten currently supports:
+
+- classic cross-reference-table PDFs (`xref` tables, not xref streams)
+- single-revision files with no incremental-update trailer chain (`/Prev` absent)
+- unencrypted AcroForm documents without `/XFA`
+- streams whose `/Length` values are direct integers
+- page dictionaries with direct `/Annots` arrays
+- page dictionaries with their own `/Resources` dictionaries (no inherited page resources)
+- widget annotations whose normal appearance at `/AP /N` resolves to a single indirect stream
+- widgets/pages whose placement can be derived from `/Rect` and appearance `/BBox` without page rotation or appearance `/Matrix` transforms
+- PDFs whose reachable indirect references resolve cleanly during serialization
+
+This supported slice matches the current parser, flattener, and regression coverage. PDFs with no AcroForm/widgets are passed through unchanged.
+
+## Rejection behavior
+
+PDFFlatten is intentionally fail-closed outside the supported slice. It does **not** attempt a best-effort rewrite for known-unsupported structures.
+
+- **`NotSupportedException`** is used for known out-of-scope structures such as xref streams, object streams, incremental-update trailers, encrypted files, XFA, inherited page resources, indirect page `/Annots`, non-stream `/AP /N`, appearance-state dictionaries, unsupported transforms, and unresolved indirect references during serialization.
+- **`InvalidOperationException`** is used when the input is malformed or structurally incomplete for the supported parser (for example missing trailer data, malformed xref entries, or broken object boundaries).
+
+For production callers, treat both exception types as input rejection signals and keep the original PDF untouched.
+
+## Known limitations
+
+- xref streams, hybrid-reference files, and object streams are unsupported
+- incremental-update PDFs are unsupported; PDFFlatten expects a single classic trailer chain
+- encrypted PDFs and XFA forms are unsupported
+- streams with missing or indirect `/Length` values are unsupported
+- indirect page `/Annots` arrays are unsupported
+- pages that inherit `/Resources` are unsupported because flattening could shadow ancestor resources
+- page rotation and appearance `/Matrix` transforms are unsupported
+- stateful checkbox/radio appearance dictionaries are unsupported; `/AP /N` must resolve to a single indirect stream
+- inherited field attributes from parent field dictionaries are **not** part of the current supported slice; that behavior remains open work
+- real renderer/viewer equivalence is not yet automated; current validation is structural and fixture-based
+- checked-in fixture diversity is still narrow; the repo does not yet prove broad producer coverage
+
+## Not recommended for
+
+- arbitrary user-supplied PDFs from unknown producer mixes
+- signed or compliance-sensitive workflows where rewriting the PDF would invalidate signatures or require preserving revision history
+- encrypted, XFA, transform-heavy, inherited-resource, or stateful-appearance forms
+- deployments that cannot pre-validate inputs and quarantine rejected files
+- teams that need a claim of broad Acrobat/browser/office producer coverage today
+
+## Production deployment guidance
+
+- test with your real PDF corpus before rollout; do not rely on the synthetic fixture alone
+- keep a known-good list of producers/templates that fit the supported slice
+- catch `NotSupportedException` and `InvalidOperationException`, log the message, and route rejected PDFs to a fallback/manual lane
+- keep the source PDF so a rejected file can be retried after future library improvements
+- verify flattened output in the viewers/printers you actually ship against; repo-side renderer/viewer equivalence automation is still pending
+
+## Future enhancement areas
+
+If you need confidence beyond the current supported slice, the next tracked work is:
+
+- [issue #5](https://github.com/jonnymuir/PDFFlatten/issues/5) — curate a safe multi-producer AcroForm fixture corpus
+- [issue #6](https://github.com/jonnymuir/PDFFlatten/issues/6) — add renderer/viewer-equivalence validation
+- [issue #7](https://github.com/jonnymuir/PDFFlatten/issues/7) — resolve inherited field-attribute hierarchy behavior
 
 ## Project layout
 

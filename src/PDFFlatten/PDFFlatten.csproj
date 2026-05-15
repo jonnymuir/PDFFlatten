@@ -17,7 +17,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>C# source migration with the netstandard2.0 package target and public PdfFlattener API preserved; repo validation now runs on a net10.0 sample/test/CI lane.</PackageReleaseNotes>
+    <PackageReleaseNotes>C# source migration with the netstandard2.0 package target and public PdfFlattener API preserved; repo validation now runs on a net10.0 sample/test/CI lane. Production-ready only for the documented classic-AcroForm supported slice; unsupported structures fail closed instead of best-effort rewriting.</PackageReleaseNotes>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
