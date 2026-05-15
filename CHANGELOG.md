@@ -4,6 +4,15 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-05-15T08:29:23.433+01:00
+
+### Added
+- Parser hardening: 10 fail-closed guards reject unsupported PDF structures (/Prev, /Encrypt, /XRefStm, /ObjStm, /XFA, page /Rotate, appearance /Matrix, state-based appearances, indirect page /Annots, inherited page /Resources). All guards throw descriptive exceptions before writing output.
+- Test coverage expansion: from 15 to 37 tests including ParserHardeningTests (9), UnsupportedPdfGuardTests (6), ExpandedCoverageTests (11), and existing regression cases. Renderability assertions verify font and resource resolution post-flattening.
+
+### Changed
+- Production-readiness posture: marked as production-ready for the documented classic-AcroForm supported slice; no longer best-effort arbitrary-PDF rewriting.
+
 ### Documentation
 - Clarified the production-readiness boundary: PDFFlatten is production-ready for the supported classic-AcroForm slice only, not for arbitrary PDFs. README and API XML docs now spell out supported structures, rejection behavior, known limitations, not-recommended usage, and deployment guidance.
 - Added concise references to follow-on enhancement areas: issue #5 (multi-producer fixture corpus), issue #6 (renderer/viewer equivalence), and issue #7 (inherited field-attribute hierarchies).

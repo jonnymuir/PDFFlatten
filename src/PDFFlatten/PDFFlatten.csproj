@@ -17,7 +17,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>C# source migration with the netstandard2.0 package target and public PdfFlattener API preserved; repo validation now runs on a net10.0 sample/test/CI lane. Production-ready only for the documented classic-AcroForm supported slice; unsupported structures fail closed instead of best-effort rewriting.</PackageReleaseNotes>
+    <PackageReleaseNotes>Production-hardening release: parser now safely rejects 10 unsupported PDF structures (xref-stream, object-stream, encryption, XFA, rotation, inherited resources, etc.) with fail-closed exceptions. Test suite expanded from 15 to 37 tests with renderability assertions. Production-ready for classic AcroForm PDFs with direct page annotations; comprehensive documentation on supported slice, limitations, and deployment guidance.</PackageReleaseNotes>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
