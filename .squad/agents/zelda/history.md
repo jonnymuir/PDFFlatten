@@ -10,6 +10,9 @@
 
 - I own PDF internals: AcroForm fields, widget annotations, appearance streams, and flattening behavior.
 - The project's success depends on preserving rendered field appearances while removing interactive form behavior for iPhone printing.
+- 2026-05-18T12:35:10.553+01:00 — Security review result: the parser boundary materially reduces exploitability by rejecting incremental updates, encryption, xref/object streams, inherited operative field attributes, inherited page resources, rotated pages, and transformed/state-based appearances before any rewrite.
+- 2026-05-18T12:35:10.553+01:00 — Meaningful residual risk remains where flattening is only a rendering transform, not a sanitizer: non-widget annotations and other reachable objects survive serialization, so active content outside widget removal must not be treated as scrubbed.
+- 2026-05-18T12:35:10.553+01:00 — Added a fail-closed signature boundary in `src/PDFFlatten/PdfFlattener.cs`; `/FT /Sig` widgets now reject instead of being flattened into a visually preserved but no-longer-verifiable document. Guard covered in `tests/PDFFlatten.Tests/ParserHardeningTests.cs`.
 
 - 2026-05-14T21:39:55.268+01:00 — Implemented the first in-house PDF parser/serializer and AcroForm flattening path for classic xref-table PDFs.
 - 2026-05-14T21:39:55.268+01:00 — Learned that preserving appearance streams is only half the job; pruning unreachable widget objects keeps flattened output meaningfully non-interactive.
@@ -76,6 +79,25 @@ All 15 regression tests passing. The flattening engine now repairs broken appear
 - 2026-05-15T06:16:04.770+01:00 — Coordinated with Purah for the C#/.NET port, then reviewed the translated PDF engine instead of re-implementing it; the port keeps the existing narrow flattening slice (`/AP /N` replay, widget removal, `/AcroForm` removal, reachable-object serialization) unchanged.
 - 2026-05-15T06:16:04.770+01:00 — Found and fixed C# translation regressions in regex/literal escaping (`PdfFlattener`, `PdfReader`, `PdfSerializer`, and the test literal decoder) before trusting any PDF review signal; those were port artifacts, not PDF-model changes.
 - 2026-05-15T06:16:04.770+01:00 — Verified semantic parity by comparing the flattened output for `GenericAcroFormFixture.pdf` against the pre-port HEAD implementation; hashes matched exactly, which is the strongest evidence that the language port did not subtly change current flattening behavior.
+
+## 2026-05-18T11:35:10Z — Security & Signature Audit (Post-Release)
+
+**Session:** Security/architecture review focused on attack surface and residual risk.
+
+**Findings:**
+- Medium-risk residual vectors remain: unbounded memory work (buffering, `/Length`-driven allocations, `FlateDecode` inflation) and exception-contract gaps (parser overflow paths emit raw exceptions instead of documented contract).
+- Signature handling gap closed: `/FT /Sig` widgets previously not rejected; replaying signature appearance destroys verification semantics.
+- Non-widget active content out of scope: flattening is a rendering transform, not a sanitizer; active content outside form fields survives unless separate sanitization policy applied.
+
+**Implementation (Zelda):**
+- Added fail-closed signature boundary in `src/PDFFlatten/PdfFlattener.cs`; `/FT /Sig` now throws `NotSupportedException` before rewrite.
+- Guard covered by synthetic classic-xref signature fixture in `tests/PDFFlatten.Tests/ParserHardeningTests.cs`.
+- All 53 regression tests passing; no regressions.
+
+**Shared Context:**
+- Impa documented security posture and next hardening priorities (resource limits, exception normalization) for v0.4.0+.
+- Orchestration logs written; decisions logged to `.squad/decisions.md`.
+- v0.3.1 production-readiness unchanged; security findings feed prioritization, not scope expansion.
 
 ## 2026-05-15T07:04:03.456+01:00 — Production-Hardening Milestone (Issue #2) Complete
 

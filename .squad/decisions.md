@@ -292,6 +292,21 @@
    - **Rationale:** Pure metadata correction, no code/API/test changes. Fixes factual inaccuracy in published package metadata. Improves transparency for consumers.
    - **Status:** ✅ Complete — committed, pushed, team history updated.
 
+## 2026-05-18 Security & Signature Audit
+
+### Impa (Security Posture After Audit)
+- 2026-05-18T12:35:10.553+01:00 — Treat PDFFlatten as a fail-closed AcroForm flattener, not a PDF sanitizer.
+   - **Audit findings:** Medium resource-exhaustion risk (unbounded buffering, `/Length`-driven allocations, `FlateDecode` inflation) and exception-contract risks remain in current supported slice.
+   - **Guidance:** Next hardening priority should be explicit resource limits for full-input buffering, `/Length`-driven allocations, and `FlateDecode` inflation during appearance inspection.
+   - **Normalization:** Follow-up hardening should normalize malformed-input numeric/length failures into the documented rejection contract (`NotSupportedException`/`InvalidOperationException`) so callers reliably handle hostile PDFs as rejection signals.
+   - **Why:** Supported-slice boundaries materially reduce exploitability by rejecting unsupported structures and never executing embedded actions. Resource-exhaustion and parser-overflow paths remain next focus rather than broader feature work.
+
+### Zelda (Signature Boundary)
+- 2026-05-18T12:35:10.553+01:00 — Treat digital signature widgets (`/FT /Sig`) as outside PDFFlatten's supported slice and reject them fail-closed during placement.
+   - **Decision:** Replaying a signature appearance while removing the AcroForm/widget graph preserves the visual mark but destroys verification semantics. That is a security-sensitive downgrade, not an acceptable "flattened" success.
+   - **Implementation:** `src/PDFFlatten/PdfFlattener.cs` now throws `NotSupportedException` for `/FT /Sig`; `tests/PDFFlatten.Tests/ParserHardeningTests.cs` locks the guard with a synthetic classic-xref signature fixture.
+   - **Scope note:** PDFFlatten remains a narrow rendering transform, not a PDF sanitizer. Non-widget active content can still survive unless a separate sanitization policy rejects it.
+
 - All meaningful changes require team consensus
 - Document architectural decisions here
 - Keep history focused on work, decisions focused on direction
