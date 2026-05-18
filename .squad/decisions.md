@@ -260,6 +260,11 @@
    - **Decision:** Add VB.NET code snippet to `README.md` that catches `NotSupportedException` and `InvalidOperationException`, logs a warning, and copies the original input PDF to the fallback output path.
    - **Why:** Keeps documentation honest about fail-closed support boundary. Shows practical consumer pattern without implying rejected PDFs should be partially flattened or best-effort processed.
 
+### Robbie (Fallback Example Test)
+- 2026-05-18T12:35:10.553+01:00 — Cover Purah's documented fallback flow with an automated NUnit test instead of changing the console sample behavior.
+   - **Decision:** Create `tests/PDFFlatten.Tests/DocumentedFallbackTests.cs` to test the fallback pattern (catch exception, log warning, copy original to fallback output).
+   - **Why:** The sample app is currently a simple success/fail CLI smoke path; baking fallback-copy semantics into it would broaden its contract. A focused test keeps Purah's README guidance intact while proving the real acceptance criteria: warning logged, source PDF unchanged, original PDF copied for both `NotSupportedException` and `InvalidOperationException`.
+
 ## Governance
 
 

@@ -30,3 +30,17 @@
 "PDFFlatten is production-ready for flattening classic AcroForm PDFs with direct page annotations and no inherited operative field attributes. It safely rejects unsupported PDF structures with descriptive exceptions. Multi-producer validation confirms correct behavior across ReportLab, pdfrw, and pypdf. Visual-equivalence testing verifies flattened output is visually identical to input within defined tolerances."
 
 **Next:** Monitor NuGet indexing (5-15 minutes typical). All Issues #5, #6, #7 now closed/shipped.
+
+## Learnings
+
+- 2026-05-18T12:35:10.553+01:00 — The fail-closed fallback example is now executable in `tests/PDFFlatten.Tests/DocumentedFallbackTests.cs`: cover both `NotSupportedException` (real rejected producer-corpus input) and `InvalidOperationException` (malformed synthetic input), and assert the caller logs a warning, leaves the source file untouched, and copies the original bytes to the fallback output path.
+
+## 2026-05-18T11:37:22Z — Scribe: Fallback test pattern decision merged
+
+**Context:** Robbie's fallback-example test decision merged from inbox by Scribe.
+
+**Decision:** Create `tests/PDFFlatten.Tests/DocumentedFallbackTests.cs` to test the fallback pattern documented by Purah. Prove warning logged, source PDF unchanged, and original PDF correctly copied for `NotSupportedException` and `InvalidOperationException`.
+
+**Rationale:** Keeps sample app as simple success/fail CLI smoke test; test harness proves the fallback pattern without broadening sample contract.
+
+**Status:** ✅ Decision merged. Ready for Robbie test implementation.
