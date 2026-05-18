@@ -1,8 +1,8 @@
 # PDFFlatten
 
-PDFFlatten is a small **C# / .NET Standard 2.0** utility library for turning interactive **AcroForm PDFs** into plain, printable page content.
+PDFFlatten is a small **C#** utility library for turning interactive **AcroForm PDFs** into plain, printable page content.
 
-The library target stays at **`netstandard2.0`** so the same package can be consumed from **.NET Framework 4.6.1+** (including **4.6.2**) and current .NET releases.
+The package now multi-targets **`net462` + `netstandard2.0`** so **.NET Framework 4.6.2** consumers can take a direct framework assembly without the old netstandard compatibility shim, while current .NET consumers still use the `netstandard2.0` asset.
 
 ## Why this package exists
 
@@ -10,7 +10,7 @@ Some PDFs print badly from mobile devices or lightweight viewers because the for
 
 ## Features
 
-- `netstandard2.0` package for broad reuse
+- `net462` + `netstandard2.0` package for broad reuse across old and current runtimes
 - simple `PdfFlattener.Flatten(Stream)` API
 - overload for caller-owned output streams
 - **in-house** flattening implementation with **no restrictive third-party PDF dependency**
@@ -27,8 +27,9 @@ dotnet add package PDFFlatten
 
 ## Compatibility posture
 
-- **Library target:** `netstandard2.0`
-- **Consumer reach:** designed for .NET Framework 4.6.2+ and current .NET runtimes through the .NET Standard 2.0 surface area
+- **Library targets:** `net462` and `netstandard2.0`
+- **Consumer reach:** .NET Framework 4.6.2 consumers get the `net462` asset; current .NET runtimes consume the `netstandard2.0` asset
+- **Compatibility motive:** the direct `net462` asset avoids the extra `netstandard`/`System.ValueTuple` compatibility facades that older full-framework web apps often have to bind or deploy explicitly
 - **Repo validation target:** the sample app, tests, and CI currently run on `net10.0` as the repo's latest-SDK smoke-test lane; that does **not** change the package target or consumer matrix
 - **Source layout:** C# implementation with one class per file, with public API kept intentionally small
 
@@ -116,7 +117,7 @@ A minimal **C#** console app lives in `samples/PDFFlatten.Sample` for local CLI 
 dotnet run --project samples/PDFFlatten.Sample -- GenericAcroFormFixture.pdf GenericAcroFormFixture.flattened.pdf
 ```
 
-The sample targets `net10.0` so local smoke tests run on the current SDK, while the reusable package remains `netstandard2.0` for consumer reach.
+The sample targets `net10.0` so local smoke tests run on the current SDK, while the reusable package remains broadly consumable through its `net462` + `netstandard2.0` targets.
 
 ## Production-readiness posture
 

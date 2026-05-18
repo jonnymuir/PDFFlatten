@@ -4,6 +4,11 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-05-18T18:32:01.569+01:00
+
+### Changed
+- Multi-targeted the NuGet package for `net462` and `netstandard2.0` so .NET Framework 4.6.2 consumers can load the direct `net462` assembly instead of relying on the old `netstandard` facade set that commonly triggers `System.ValueTuple` runtime binding problems in legacy web apps.
+
 ## [0.3.2] - 2026-05-18T13:05:30+01:00
 
 ### Changed

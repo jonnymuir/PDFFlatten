@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <TargetFramework>netstandard2.0</TargetFramework>
+    <TargetFrameworks>net462;netstandard2.0</TargetFrameworks>
     <AssemblyName>PDFFlatten</AssemblyName>
     <RootNamespace>PDFFlatten</RootNamespace>
     <Nullable>enable</Nullable>
@@ -17,7 +17,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>Security hardening patch: added explicit in-memory caps for whole-input buffering, direct stream /Length reads, and FlateDecode appearance inspection; normalized malformed numeric and stream-length failures to the documented InvalidOperationException contract; documented and regression-tested the VB.NET fallback pattern for rejected PDFs. All 61 tests passing.</PackageReleaseNotes>
+    <PackageReleaseNotes>Compatibility update: package now multi-targets net462 and netstandard2.0 so .NET Framework 4.6.2 consumers can load a direct framework asset instead of the old netstandard/System.ValueTuple facade path, while modern .NET consumers keep the netstandard2.0 asset.</PackageReleaseNotes>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 
