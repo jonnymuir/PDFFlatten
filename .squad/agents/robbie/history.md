@@ -44,3 +44,27 @@
 **Rationale:** Keeps sample app as simple success/fail CLI smoke test; test harness proves the fallback pattern without broadening sample contract.
 
 **Status:** ✅ Decision merged. Ready for Robbie test implementation.
+- 2026-05-18T12:35:10.553+01:00 — Security hardening regression coverage now lives in `tests/PDFFlatten.Tests/ParserHardeningTests.cs`, backed by `src/PDFFlatten/Internals/PdfSecurityLimits.cs`: use a seekable synthetic stream for whole-file caps, binary stream fixtures for `FlateDecode` amplification caps, and malformed numeric fixtures so hostile PDFs stay inside the documented `NotSupportedException`/`InvalidOperationException` rejection contract.
+
+## Session 2026-05-18 — Security Hardening Round
+
+**Date:** 2026-05-18T12:35:10.553+01:00
+
+### Outcomes
+- Added 4 security regression tests to `ParserHardeningTests.cs`:
+  - `/FT /Sig` fail-closed rejection test
+  - Oversized input stream rejection test
+  - Oversized direct stream `/Length` rejection test
+  - `FlateDecode` appearance inflation-cap rejection test
+  - Malformed `startxref` and negative `/Length` normalization to `InvalidOperationException` test
+- Full regression suite: 61/61 passing
+
+### Decisions
+- Security regression bar locked with focused negative tests for hostile PDF rejection boundaries
+- Callers can trust flattening as a safe rejection boundary
+
+### Status
+All regression tests passing; security regression bar complete and locked.
+
+### Next
+Release v0.1.0 with security hardening regression coverage complete.

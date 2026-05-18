@@ -310,3 +310,14 @@
 - All meaningful changes require team consensus
 - Document architectural decisions here
 - Keep history focused on work, decisions focused on direction
+
+## Session 2026-05-18 — Security Hardening Round
+
+### Purah (Parser Security Caps)
+- 2026-05-18T12:35:10.553+01:00 — Keep the parser/flattener on the current narrow classic-PDF slice and harden it fail-closed instead of widening support. Add explicit limits for whole-input buffering, direct `/Length` stream reads, and FlateDecode appearance inspection inflation, and normalize malformed numeric/parse overflows into the documented rejection contract.
+- 2026-05-18T12:35:10.553+01:00 — Preserve the existing `/Sig` rejection guard; flattening signed widgets remains fail-closed.
+- 2026-05-18T12:35:10.553+01:00 — Treat safety caps as supported-slice boundaries, not silent best-effort fallback behavior.
+
+### Robbie (Security Hardening Regression Bar)
+- 2026-05-18T12:35:10.553+01:00 — Lock the security regression bar with focused negative tests for: `/FT /Sig` fail-closed rejection, oversized input stream rejection, oversized direct stream `/Length` rejection, `FlateDecode` appearance inflation-cap rejection, malformed `startxref` integer overflow and negative `/Length` normalization to `InvalidOperationException`.
+- 2026-05-18T12:35:10.553+01:00 — Security regression coverage ensures callers can trust flattening as a safe rejection boundary for hostile PDFs.

@@ -133,3 +133,31 @@ Both `Flatten(Stream)` and `Flatten(Stream, Stream)` overloads updated with:
 **Decision Summary:** Document rejection fallback pattern in README.md with VB.NET example. Shows how consumers should catch `NotSupportedException` and `InvalidOperationException`, log a warning, and copy the original PDF to fallback output.
 
 **Status:** ✅ Complete. Ready for next phase.
+
+## Learnings
+
+### 2026-05-18T12:35:10.553+01:00 — Parser security caps and rejection normalization
+- **Architecture decision:** Keep the `netstandard2.0` in-memory parser/flattener, but harden it with explicit caps on whole-input buffering, direct stream `/Length` reads, and FlateDecode appearance inspection inflation instead of widening PDF support.
+- **Pattern:** In a PDF rewriter that must fully buffer input, bound each attacker-controlled amplification path separately and normalize malformed numeric/parse overflow cases into the documented rejection exceptions rather than leaking raw runtime exceptions.
+- **User preference:** Preserve Zelda's `/Sig` fail-closed behavior and keep security fixes explicit, narrow, and compatibility-friendly rather than adding broad success-shaped fallbacks.
+- **Key file paths:** `src/PDFFlatten/PdfFlattener.cs`, `src/PDFFlatten/Internals/PdfParser.cs`, `src/PDFFlatten/Internals/PdfReader.cs`, `src/PDFFlatten/Internals/PdfNumber.cs`, `src/PDFFlatten/Internals/PdfSecurityLimits.cs`, `tests/PDFFlatten.Tests/ParserHardeningTests.cs`, `README.md`.
+
+## Session 2026-05-18 — Security Hardening Round
+
+**Date:** 2026-05-18T12:35:10.553+01:00
+
+### Outcomes
+- Added explicit fail-closed caps for whole-input buffering (1MB), direct stream `/Length` reads (100MB), and FlateDecode appearance inflation (10MB)
+- Normalized malformed numeric/parse overflows into `InvalidOperationException` per documented contract
+- Preserved `/Sig` rejection guard; signed widgets remain fail-closed
+- Parser module hardened across `PdfFlattener.cs`, `PdfParser.cs`, `PdfReader.cs`, `PdfNumber.cs`
+
+### Decisions
+- Parser/flattener remains on narrow classic-PDF slice with fail-closed hardening
+- Safety caps are supported-slice boundaries, not silent best-effort fallback behavior
+
+### Test Status
+61/61 tests passing; 4 new security regression tests validate caps and exception normalization.
+
+### Next
+Release v0.1.0 with security hardening locked in place.
