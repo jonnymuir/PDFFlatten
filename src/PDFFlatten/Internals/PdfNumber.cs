@@ -1,3 +1,4 @@
+using System;
 using System.Globalization;
 
 namespace PDFFlatten.Internals;
@@ -10,7 +11,7 @@ internal sealed class PdfNumber : PdfValue
     internal PdfNumber(string rawValue)
     {
         RawValue = rawValue;
-        NumericValue = double.Parse(rawValue, CultureInfo.InvariantCulture);
+        NumericValue = PdfSecurityLimits.ParseNumberToken(rawValue);
         IsInteger = rawValue.IndexOf('.') == -1 && rawValue.IndexOf('E') == -1 && rawValue.IndexOf('e') == -1;
     }
 

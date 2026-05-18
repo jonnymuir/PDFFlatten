@@ -17,7 +17,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>Follow-on field-attribute hardening: widgets that inherit operative field attributes from parent field dictionaries now reject fail-closed with descriptive exceptions. Added producer fixture corpus (reportlab, pdfrw, pypdf) with provenance metadata and regression tests. All 53 tests passing; production-ready for classic AcroForm PDFs with direct page annotations and no inherited operative field attributes.</PackageReleaseNotes>
+    <PackageReleaseNotes>Security hardening patch: added explicit in-memory caps for whole-input buffering, direct stream /Length reads, and FlateDecode appearance inspection; normalized malformed numeric and stream-length failures to the documented InvalidOperationException contract; documented and regression-tested the VB.NET fallback pattern for rejected PDFs. All 61 tests passing.</PackageReleaseNotes>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 

@@ -63,7 +63,7 @@ internal sealed class PdfReader
     internal int ReadInteger()
     {
         var token = ReadSimpleToken();
-        return int.Parse(token, CultureInfo.InvariantCulture);
+        return PdfParser.ParseIntegerToken(token, "indirect object header");
     }
 
     internal string ReadKeyword()
@@ -81,6 +81,16 @@ internal sealed class PdfReader
 
     internal byte[] ReadBytes(int length)
     {
+        if (length < 0)
+        {
+            throw new InvalidOperationException("Stream /Length must be non-negative.");
+        }
+
+        if (length > _data.Length - _position)
+        {
+            throw new InvalidOperationException("Stream /Length extends beyond the available data.");
+        }
+
         var buffer = new byte[length];
         Array.Copy(_data, _position, buffer, 0, length);
         _position += length;
@@ -294,21 +304,15 @@ internal sealed class PdfReader
         var firstToken = ReadSimpleToken();
         var snapshot = _position;
 
-        try
+        SkipWhiteSpaceAndComments();
+        var secondToken = ReadSimpleToken();
+        SkipWhiteSpaceAndComments();
+        var maybeReferenceMarker = ReadSimpleToken();
+        if (IsIntegerToken(firstToken) && IsIntegerToken(secondToken) && maybeReferenceMarker == "R")
         {
-            SkipWhiteSpaceAndComments();
-            var secondToken = ReadSimpleToken();
-            SkipWhiteSpaceAndComments();
-            var maybeReferenceMarker = ReadSimpleToken();
-            if (IsIntegerToken(firstToken) && IsIntegerToken(secondToken) && maybeReferenceMarker == "R")
-            {
-                return new PdfIndirectReference(
-                    int.Parse(firstToken, CultureInfo.InvariantCulture),
-                    int.Parse(secondToken, CultureInfo.InvariantCulture));
-            }
-        }
-        catch
-        {
+            return new PdfIndirectReference(
+                PdfParser.ParseIntegerToken(firstToken, "indirect reference object number"),
+                PdfParser.ParseIntegerToken(secondToken, "indirect reference generation"));
         }
 
         _position = snapshot;

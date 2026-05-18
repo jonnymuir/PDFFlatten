@@ -83,6 +83,31 @@ Using input As Stream = File.OpenRead("input.pdf")
 End Using
 ```
 
+Fallback example for rejected PDFs:
+
+```vb
+Imports PDFFlatten
+Imports System
+Imports System.IO
+
+Dim inputPath = "input.pdf"
+Dim outputPath = "flattened-or-original.pdf"
+
+Try
+    Using input As Stream = File.OpenRead(inputPath)
+        Using output As Stream = File.Create(outputPath)
+            PdfFlattener.Flatten(input, output)
+        End Using
+    End Using
+Catch ex As NotSupportedException
+    Console.Error.WriteLine($"Warning: PDF left unflattened because it is outside PDFFlatten's supported slice. {ex.Message}")
+    File.Copy(inputPath, outputPath, overwrite:=True)
+Catch ex As InvalidOperationException
+    Console.Error.WriteLine($"Warning: PDF left unflattened because PDFFlatten rejected the file as malformed or incomplete. {ex.Message}")
+    File.Copy(inputPath, outputPath, overwrite:=True)
+End Try
+```
+
 ## Console sample
 
 A minimal **C#** console app lives in `samples/PDFFlatten.Sample` for local CLI testing on macOS, Linux, or Windows.
@@ -105,6 +130,7 @@ PDFFlatten currently supports:
 - single-revision files with no incremental-update trailer chain (`/Prev` absent)
 - unencrypted AcroForm documents without `/XFA`
 - streams whose `/Length` values are direct integers
+- source PDFs, direct stream payloads, and Flate-decoded appearance inspection payloads that stay within the library's explicit in-memory safety caps
 - page dictionaries with direct `/Annots` arrays
 - page dictionaries with their own `/Resources` dictionaries (no inherited page resources)
 - field hierarchies whose parent dictionaries contribute naming only; operative widget/terminal-field attributes stay self-contained
@@ -118,7 +144,7 @@ This supported slice matches the current parser, flattener, and regression cover
 
 PDFFlatten is intentionally fail-closed outside the supported slice. It does **not** attempt a best-effort rewrite for known-unsupported structures.
 
-- **`NotSupportedException`** is used for known out-of-scope structures such as xref streams, object streams, incremental-update trailers, encrypted files, XFA, inherited page resources, inherited operative field attributes (`/FT`, `/DA`, `/DR`, `/V`), indirect page `/Annots`, non-stream `/AP /N`, appearance-state dictionaries, unsupported transforms, and unresolved indirect references during serialization.
+- **`NotSupportedException`** is used for known out-of-scope structures such as xref streams, object streams, incremental-update trailers, encrypted files, XFA, inherited page resources, inherited operative field attributes (`/FT`, `/DA`, `/DR`, `/V`), indirect page `/Annots`, non-stream `/AP /N`, appearance-state dictionaries, unsupported transforms, unresolved indirect references during serialization, and inputs or stream payloads that exceed the library's explicit in-memory safety caps.
 - **`InvalidOperationException`** is used when the input is malformed or structurally incomplete for the supported parser (for example missing trailer data, malformed xref entries, or broken object boundaries).
 
 For production callers, treat both exception types as input rejection signals and keep the original PDF untouched.
@@ -129,6 +155,7 @@ For production callers, treat both exception types as input rejection signals an
 - incremental-update PDFs are unsupported; PDFFlatten expects a single classic trailer chain
 - encrypted PDFs and XFA forms are unsupported
 - streams with missing or indirect `/Length` values are unsupported
+- very large source PDFs, direct stream payloads, or Flate-decoded appearance payloads are rejected once they exceed the library's explicit in-memory safety caps
 - indirect page `/Annots` arrays are unsupported
 - pages that inherit `/Resources` are unsupported because flattening could shadow ancestor resources
 - page rotation and appearance `/Matrix` transforms are unsupported

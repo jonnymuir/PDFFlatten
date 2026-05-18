@@ -26,10 +26,21 @@ internal static class PdfParser
         var startXref = FindStartXref(data);
         var parsedXref = ParseXref(data, startXref);
         RejectUnsupportedTrailer(parsedXref.Trailer);
-        var firstObjectOffset = parsedXref.Entries.Values.Where(entry => entry.InUse).Min(entry => entry.Offset);
+        var inUseEntries = parsedXref.Entries.Values.Where(entry => entry.InUse).ToArray();
+        if (inUseEntries.Length == 0)
+        {
+            throw new InvalidOperationException("Cross-reference table did not contain any in-use objects.");
+        }
+
+        var firstObjectOffset = inUseEntries.Min(entry => entry.Offset);
+        if (firstObjectOffset < 0 || firstObjectOffset > data.Length)
+        {
+            throw new InvalidOperationException("Cross-reference entries point outside the PDF data.");
+        }
+
         var objects = new List<PdfIndirectObject>();
 
-        foreach (var entry in parsedXref.Entries.Values.Where(item => item.InUse).OrderBy(item => item.ObjectNumber))
+        foreach (var entry in inUseEntries.OrderBy(item => item.ObjectNumber))
         {
             var pdfObject = ParseObject(data, entry.Offset);
             RejectUnsupportedObject(pdfObject);
@@ -99,7 +110,7 @@ internal static class PdfParser
                 var position = index + marker.Length;
                 SkipWhiteSpaceAndComments(data, ref position);
                 var offsetToken = ReadSimpleToken(data, ref position);
-                return int.Parse(offsetToken, CultureInfo.InvariantCulture);
+                return ParseIntegerToken(offsetToken, "startxref offset");
             }
         }
 
@@ -108,6 +119,11 @@ internal static class PdfParser
 
     private static ParsedXref ParseXref(byte[] data, int startXref)
     {
+        if (startXref < 0 || startXref >= data.Length)
+        {
+            throw new InvalidOperationException("Cross-reference offset is outside the PDF data.");
+        }
+
         var position = startXref;
         var keyword = ReadSimpleToken(data, ref position);
         if (!string.Equals(keyword, "xref", StringComparison.Ordinal))
@@ -134,9 +150,19 @@ internal static class PdfParser
                 return new ParsedXref(entries, trailerDictionary);
             }
 
-            var firstObject = int.Parse(ReadSimpleToken(data, ref position), CultureInfo.InvariantCulture);
+            var firstObject = ParseIntegerToken(ReadSimpleToken(data, ref position), "xref subsection start object");
+            if (firstObject < 0)
+            {
+                throw new InvalidOperationException("Cross-reference subsection object numbers must be non-negative.");
+            }
+
             SkipWhiteSpaceAndComments(data, ref position);
-            var count = int.Parse(ReadSimpleToken(data, ref position), CultureInfo.InvariantCulture);
+            var count = ParseIntegerToken(ReadSimpleToken(data, ref position), "xref subsection count");
+            if (count < 0)
+            {
+                throw new InvalidOperationException("Cross-reference subsection count must be non-negative.");
+            }
+
             ConsumeLineEnding(data, ref position);
 
             for (var offsetIndex = 0; offsetIndex < count; offsetIndex++)
@@ -147,8 +173,8 @@ internal static class PdfParser
                     throw new InvalidOperationException("Malformed cross-reference entry.");
                 }
 
-                var offset = int.Parse(line.Substring(0, 10), CultureInfo.InvariantCulture);
-                var generation = int.Parse(line.Substring(11, 5), CultureInfo.InvariantCulture);
+                var offset = ParseIntegerToken(line.Substring(0, 10), "xref entry offset");
+                var generation = ParseIntegerToken(line.Substring(11, 5), "xref entry generation");
                 var inUse = line[17] == 'n';
                 entries[firstObject + offsetIndex] = new XrefEntry(firstObject + offsetIndex, offset, generation, inUse);
             }
@@ -157,6 +183,11 @@ internal static class PdfParser
 
     private static PdfIndirectObject ParseObject(byte[] data, int offset)
     {
+        if (offset < 0 || offset >= data.Length)
+        {
+            throw new InvalidOperationException("Indirect object offset points outside the PDF data.");
+        }
+
         var reader = new PdfReader(data, offset);
         var objectNumber = reader.ReadInteger();
         var generation = reader.ReadInteger();
@@ -184,7 +215,17 @@ internal static class PdfParser
                 throw new NotSupportedException("Only streams with direct integer /Length values are supported.");
             }
 
-            var streamLength = (int)lengthNumber.NumericValue;
+            var streamLength = PdfSecurityLimits.RequireInt32(lengthNumber, "stream /Length");
+            if (streamLength < 0)
+            {
+                throw new InvalidOperationException("Stream /Length must be non-negative.");
+            }
+
+            if (streamLength > PdfSecurityLimits.MaxStreamBytes)
+            {
+                throw new NotSupportedException($"Streams longer than {PdfSecurityLimits.MaxStreamBytes.ToString(CultureInfo.InvariantCulture)} bytes are not supported.");
+            }
+
             var streamData = reader.ReadBytes(streamLength);
             reader.SkipPotentialStreamTerminator();
             if (reader.ReadKeyword() != "endstream")
@@ -235,6 +276,11 @@ internal static class PdfParser
         {
             throw new NotSupportedException("Object streams (/ObjStm) are not supported.");
         }
+    }
+
+    internal static int ParseIntegerToken(string token, string context)
+    {
+        return PdfSecurityLimits.ParseInt32Token(token, context);
     }
 
     private static string ReadSimpleToken(byte[] data, ref int position)

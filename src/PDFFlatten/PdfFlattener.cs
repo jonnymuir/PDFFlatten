@@ -26,7 +26,7 @@ public static class PdfFlattener
     /// <param name="input">A readable stream containing the source PDF.</param>
     /// <returns>A rewindable stream positioned at the beginning of the flattened PDF.</returns>
     /// <remarks>
-    /// <para>PDFFlatten is production-ready only for a constrained slice of AcroForm PDFs: classic xref-table files, no incremental-update trailer chain, no encryption, no XFA, direct page <c>/Annots</c>, non-inherited page <c>/Resources</c>, self-contained widget/terminal-field dictionaries for operative field attributes (<c>/FT</c>, <c>/DA</c>, <c>/DR</c>, <c>/V</c>), and widget normal appearances that resolve to a single indirect stream at <c>/AP /N</c> without rotation or <c>/Matrix</c> transforms.</para>
+    /// <para>PDFFlatten is production-ready only for a constrained slice of AcroForm PDFs: classic xref-table files, no incremental-update trailer chain, no encryption, no XFA, no digital signature fields, direct page <c>/Annots</c>, non-inherited page <c>/Resources</c>, self-contained widget/terminal-field dictionaries for operative field attributes (<c>/FT</c>, <c>/DA</c>, <c>/DR</c>, <c>/V</c>), widget normal appearances that resolve to a single indirect stream at <c>/AP /N</c> without rotation or <c>/Matrix</c> transforms, and bounded file/stream sizes that fit the in-memory implementation.</para>
     /// <para>Inputs outside that slice fail closed with descriptive exceptions instead of a best-effort rewrite. PDFs with no AcroForm/widgets are returned unchanged.</para>
     /// <para>Caller-owned streams remain open.</para>
     /// </remarks>
@@ -52,7 +52,7 @@ public static class PdfFlattener
     /// </example>
     /// <exception cref="ArgumentNullException"><paramref name="input"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="input"/> is not readable.</exception>
-    /// <exception cref="NotSupportedException">The PDF uses known-unsupported structures such as xref streams, object streams, incremental updates, encryption, XFA, inherited page resources, inherited operative field attributes, indirect page annotations, non-stream widget normal appearances, or unsupported transforms.</exception>
+    /// <exception cref="NotSupportedException">The PDF uses known-unsupported structures such as xref streams, object streams, incremental updates, encryption, XFA, digital signature fields, inherited page resources, inherited operative field attributes, indirect page annotations, non-stream widget normal appearances, unsupported transforms, or file/stream payloads that exceed the library's explicit in-memory safety caps.</exception>
     /// <exception cref="InvalidOperationException">The PDF is malformed or incomplete for the supported classic-parser slice.</exception>
     public static Stream Flatten(Stream input)
     {
@@ -78,13 +78,13 @@ public static class PdfFlattener
     /// <param name="input">A readable stream containing the source PDF.</param>
     /// <param name="output">A writable stream that receives the flattened PDF.</param>
     /// <remarks>
-    /// <para>The same supported-slice preconditions as <see cref="Flatten(Stream)"/> apply.</para>
+    /// <para>The same supported-slice preconditions as <see cref="Flatten(Stream)"/> apply, including bounded file/stream sizes that fit the in-memory implementation.</para>
     /// <para>PDFFlatten rejects known-unsupported structures with descriptive exceptions before writing output bytes, rather than emitting a best-effort partial rewrite.</para>
     /// <para>Caller-owned streams remain open. The output stream is left at the end of the written PDF.</para>
     /// </remarks>
     /// <exception cref="ArgumentNullException"><paramref name="input"/> or <paramref name="output"/> is <see langword="null"/>.</exception>
     /// <exception cref="ArgumentException"><paramref name="input"/> is not readable or <paramref name="output"/> is not writable.</exception>
-    /// <exception cref="NotSupportedException">The PDF uses known-unsupported structures such as xref streams, object streams, incremental updates, encryption, XFA, inherited page resources, inherited operative field attributes, indirect page annotations, non-stream widget normal appearances, unresolved indirect references, or unsupported transforms.</exception>
+    /// <exception cref="NotSupportedException">The PDF uses known-unsupported structures such as xref streams, object streams, incremental updates, encryption, XFA, digital signature fields, inherited page resources, inherited operative field attributes, indirect page annotations, non-stream widget normal appearances, unresolved indirect references, unsupported transforms, or file/stream payloads that exceed the library's explicit in-memory safety caps.</exception>
     /// <exception cref="InvalidOperationException">The PDF is malformed or incomplete for the supported classic-parser slice.</exception>
     public static void Flatten(Stream input, Stream output)
     {
@@ -250,6 +250,7 @@ public static class PdfFlattener
     private static FlattenPlacement CreatePlacement(PdfDocument document, PdfDictionary annotation, int placementIndex)
     {
         RejectInheritedFieldAttributes(document, annotation);
+        RejectDigitalSignatureFields(document, annotation);
         var rect = annotation.RequireArray("Rect");
         if (rect.Items.Count != 4)
         {
@@ -419,9 +420,10 @@ public static class PdfFlattener
     {
         using var input = new MemoryStream(data);
         using var inflater = new DeflateStream(input, CompressionMode.Decompress);
-        using var output = new MemoryStream();
-        inflater.CopyTo(output);
-        return output.ToArray();
+        return ReadAllBytesWithLimit(
+            inflater,
+            PdfSecurityLimits.MaxDecodedAppearanceBytes,
+            $"FlateDecode appearance content larger than {PdfSecurityLimits.MaxDecodedAppearanceBytes} bytes when inflated is not supported.");
     }
 
     private static bool HasResolvableFont(PdfDocument document, PdfDictionary fontDictionary, string fontName)
@@ -529,7 +531,7 @@ public static class PdfFlattener
             throw new NotSupportedException($"Dictionary key /{key} must resolve to an integer.");
         }
 
-        value = (int)number.NumericValue;
+        value = PdfSecurityLimits.RequireInt32(number, $"dictionary key /{key}");
         return true;
     }
 
@@ -580,6 +582,19 @@ public static class PdfFlattener
             throw new NotSupportedException(
                 $"Inherited field attribute /{key} is not supported for widget field '{GetFieldDisplayName(document, annotation)}'; operative field attributes must be self-contained on the terminal field/widget dictionary.");
         }
+    }
+
+    private static void RejectDigitalSignatureFields(PdfDocument document, PdfDictionary annotation)
+    {
+        if (!annotation.TryGetValue("FT", out var fieldType)
+            || fieldType is not PdfName fieldTypeName
+            || !string.Equals(fieldTypeName.Value, "Sig", StringComparison.Ordinal))
+        {
+            return;
+        }
+
+        throw new NotSupportedException(
+            $"Digital signature fields (/FT /Sig) are not supported for widget field '{GetFieldDisplayName(document, annotation)}' because flattening would remove signature verification semantics.");
     }
 
     private static string GetFieldDisplayName(PdfDocument document, PdfDictionary annotation)
@@ -818,18 +833,49 @@ public static class PdfFlattener
 
     private static byte[] ReadAllBytes(Stream input)
     {
-        if (input is MemoryStream memoryStream)
-        {
-            return memoryStream.ToArray();
-        }
-
         if (input.CanSeek)
         {
+            if (input.Length > PdfSecurityLimits.MaxInputBytes)
+            {
+                throw new NotSupportedException($"PDF inputs larger than {PdfSecurityLimits.MaxInputBytes} bytes are not supported.");
+            }
+
             input.Position = 0;
         }
 
+        return ReadAllBytesWithLimit(
+            input,
+            PdfSecurityLimits.MaxInputBytes,
+            $"PDF inputs larger than {PdfSecurityLimits.MaxInputBytes} bytes are not supported.");
+    }
+
+    private static byte[] ReadAllBytesWithLimit(Stream input, int maxBytes, string exceptionMessage)
+    {
         using var buffer = new MemoryStream();
-        input.CopyTo(buffer);
+        var chunk = new byte[81920];
+
+        while (true)
+        {
+            var remaining = (long)maxBytes - buffer.Length;
+            if (remaining <= 0)
+            {
+                if (input.ReadByte() != -1)
+                {
+                    throw new NotSupportedException(exceptionMessage);
+                }
+
+                break;
+            }
+
+            var read = input.Read(chunk, 0, (int)Math.Min(chunk.Length, remaining));
+            if (read == 0)
+            {
+                break;
+            }
+
+            buffer.Write(chunk, 0, read);
+        }
+
         return buffer.ToArray();
     }
 

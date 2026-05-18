@@ -33,6 +33,7 @@
 
 ## Learnings
 
+- 2026-05-18T12:35:10.553+01:00 — Real-world rerun path stays `dotnet run --project samples/PDFFlatten.Sample -- /Users/jonnymuir/Downloads/BAPSL_P60_Populated.pdf /Users/jonnymuir/Downloads/BAPSL_P60_Populated.flattened.pdf`; on the current hardened tree it still succeeds cleanly, produces `e76ac3fba1d3b5ee238bbb524a103e21` at the output path, and Quick Look renders the flattened PDF without the CoreGraphics warning seen on the original input.
 - 2026-05-18T12:35:10.553+01:00 — The fail-closed fallback example is now executable in `tests/PDFFlatten.Tests/DocumentedFallbackTests.cs`: cover both `NotSupportedException` (real rejected producer-corpus input) and `InvalidOperationException` (malformed synthetic input), and assert the caller logs a warning, leaves the source file untouched, and copies the original bytes to the fallback output path.
 
 ## 2026-05-18T11:37:22Z — Scribe: Fallback test pattern decision merged

@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.3.2] - 2026-05-18T13:05:30+01:00
+
+### Changed
+- Hardened the classic-parser rejection boundary with explicit caps for whole-input buffering, direct stream `/Length` reads, and FlateDecode appearance inspection so hostile PDFs fail closed instead of consuming unbounded memory.
+- Normalized malformed numeric overflow and stream-length parsing failures to the documented `InvalidOperationException` contract instead of leaking raw runtime parsing exceptions.
+
+### Added
+- Regression coverage for documented VB.NET fallback handling, proving callers can log a warning, preserve the source PDF, and copy the original bytes when PDFFlatten rejects unsupported or malformed inputs.
+- Focused parser hardening tests for digital-signature rejection, oversized inputs and streams, FlateDecode amplification limits, and malformed numeric edge cases. Full suite now passes at 61 tests.
+
+### Documentation
+- Clarified README supported-slice language around explicit in-memory safety caps and documented the rejection fallback pattern for .NET Framework / VB.NET consumers.
+
 ## [0.3.1] - 2026-05-15T19:37:58.260+01:00
 
 ### Changed
