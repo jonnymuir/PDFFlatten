@@ -252,6 +252,14 @@
    - **Implementation boundary:** Widgets now reject fail-closed when `/FT`, `/DA`, `/DR`, or `/V` inherited from parent field dictionary. Exception messages include fully qualified field name derived from partial-name hierarchy.
    - **Still out of scope:** Full inherited-field-attribute support remains future work until producer-diverse corpus plus renderer/viewer equivalence validation proves safe.
 
+## 2026-05-18 Post-Release A
+
+### Purah (VB Quick-Start Fallback Example)
+- 2026-05-18T12:32:33.161+01:00 — Document rejection fallback pattern in `README.md` with VB.NET example showing catch-and-copy-original behavior.
+   - **Context:** User requested one more quick-start example showing what to do when PDFFlatten rejects a PDF due to unsupported structure or incomplete AcroForm.
+   - **Decision:** Add VB.NET code snippet to `README.md` that catches `NotSupportedException` and `InvalidOperationException`, logs a warning, and copies the original input PDF to the fallback output path.
+   - **Why:** Keeps documentation honest about fail-closed support boundary. Shows practical consumer pattern without implying rejected PDFs should be partially flattened or best-effort processed.
+
 ## Governance
 
 
