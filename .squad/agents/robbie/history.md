@@ -37,6 +37,7 @@
 - 2026-05-19T08:44:49.253+01:00 — The sample console in `samples/PDFFlatten.Sample/Program.cs` creates the destination file before calling `PdfFlattener.Flatten(...)`, so a failed run can leave an empty placeholder; for this rejection case, the inspectable fallback copy is `/Users/jonnymuir/Downloads/BAPSL_P60_Template 1.fallback-original.pdf`, byte-identical to the source.
 - 2026-05-18T12:35:10.553+01:00 — Real-world rerun path stays `dotnet run --project samples/PDFFlatten.Sample -- /Users/jonnymuir/Downloads/BAPSL_P60_Populated.pdf /Users/jonnymuir/Downloads/BAPSL_P60_Populated.flattened.pdf`; on the current hardened tree it still succeeds cleanly, produces `e76ac3fba1d3b5ee238bbb524a103e21` at the output path, and Quick Look renders the flattened PDF without the CoreGraphics warning seen on the original input.
 - 2026-05-18T12:35:10.553+01:00 — The fail-closed fallback example is now executable in `tests/PDFFlatten.Tests/DocumentedFallbackTests.cs`: cover both `NotSupportedException` (real rejected producer-corpus input) and `InvalidOperationException` (malformed synthetic input), and assert the caller logs a warning, leaves the source file untouched, and copies the original bytes to the fallback output path.
+- 2026-05-19T09:06:49.650+01:00 — Narrow indirect stream `/Length` coverage now lives in `tests/PDFFlatten.Tests/UnsupportedPdfGuardTests.cs`: prove one-hop integer resolution succeeds when the length object appears either before or after the stream, while chained, cyclic, non-integer, and missing-object patterns still reject fail-closed. Key file paths: `src/PDFFlatten/Internals/PdfParser.cs`, `tests/PDFFlatten.Tests/UnsupportedPdfGuardTests.cs`, `README.md`.
 
 ## 2026-05-18T11:37:22Z — Scribe: Fallback test pattern decision merged
 
@@ -87,3 +88,12 @@ Release v0.1.0 with security hardening regression coverage complete.
 **Verdict:** Expected behavior confirmed. Hardening regression gate operational. Fail-closed path functional.
 
 **Scribe Note:** Inbox merge from 2026-05-19 completed; Impa/Purah release-path consensus locked on v0.4.0 + net462 multi-targeting as next release.
+
+
+## Team Update — 2026-05-19T08:18:00Z
+
+**Purah** completed one-hop indirect stream /Length support with test coverage.
+**Robbie** added regression coverage for indirect /Length cases.
+**Decisions merged:** 6 inbox entries (roadmap, indirect-length cases, unsupported PDF categories).
+**Archive status:** decisions.md at 64026 bytes; no entries older than 7 days.
+

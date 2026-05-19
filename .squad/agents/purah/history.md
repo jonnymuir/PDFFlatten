@@ -142,6 +142,14 @@ Both `Flatten(Stream)` and `Flatten(Stream, Stream)` overloads updated with:
 - **User preference:** Preserve Zelda's `/Sig` fail-closed behavior and keep security fixes explicit, narrow, and compatibility-friendly rather than adding broad success-shaped fallbacks.
 - **Key file paths:** `src/PDFFlatten/PdfFlattener.cs`, `src/PDFFlatten/Internals/PdfParser.cs`, `src/PDFFlatten/Internals/PdfReader.cs`, `src/PDFFlatten/Internals/PdfNumber.cs`, `src/PDFFlatten/Internals/PdfSecurityLimits.cs`, `tests/PDFFlatten.Tests/ParserHardeningTests.cs`, `README.md`.
 
+### 2026-05-19T09:06:49.650+01:00 — Narrow indirect stream /Length support stayed xref-driven
+- **Architecture decision:** `src/PDFFlatten/Internals/PdfParser.cs` now accepts stream-dictionary `/Length` values that are either direct integers or one indirect reference whose target object resolves directly to an integer; it still uses the classic xref table plus exact-length reads and does not introduce a general-purpose lazy resolver.
+- **Pattern:** For compatibility-only parser widenings, keep the new indirection local to the one field that truly needs it, reuse existing size/overflow guards, and reject chained references, cycles, missing objects, non-integer targets, and oversized lengths before any `endstream` validation changes.
+- **User preference:** Keep support additions narrow and fail-closed rather than broadening the supported slice opportunistically.
+- **Key file paths:** `src/PDFFlatten/Internals/PdfParser.cs`, `tests/PDFFlatten.Tests/UnsupportedPdfGuardTests.cs`, `tests/PDFFlatten.Tests/ParserHardeningTests.cs`, `README.md`, `samples/PDFFlatten.Sample/Program.cs`.
+- **Verification:** `dotnet test --nologo` passed with 67/67 tests, and `dotnet run --project samples/PDFFlatten.Sample -- /Users/jonnymuir/Downloads/BAPSL_P60_Template 1.pdf artifacts/sample-check/BAPSL_P60_Template-1.flattened.pdf` now succeeds on the previously rejected indirect-`/Length` pattern.
+
+
 ## Session 2026-05-18 — Security Hardening Round
 
 **Date:** 2026-05-18T12:35:10.553+01:00
@@ -161,3 +169,12 @@ Both `Flatten(Stream)` and `Flatten(Stream, Stream)` overloads updated with:
 
 ### Next
 Release v0.1.0 with security hardening locked in place.
+
+
+## Team Update — 2026-05-19T08:18:00Z
+
+**Purah** completed one-hop indirect stream /Length support with test coverage.
+**Robbie** added regression coverage for indirect /Length cases.
+**Decisions merged:** 6 inbox entries (roadmap, indirect-length cases, unsupported PDF categories).
+**Archive status:** decisions.md at 64026 bytes; no entries older than 7 days.
+

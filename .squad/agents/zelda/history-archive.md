@@ -1,3 +1,6 @@
+
+
+## COMPRESSED SESSION HISTORY
 # Project Context
 
 - **Owner:** Jonny Muir
@@ -99,14 +102,6 @@ All 15 regression tests passing. The flattening engine now repairs broken appear
 - Orchestration logs written; decisions logged to `.squad/decisions.md`.
 - v0.3.1 production-readiness unchanged; security findings feed prioritization, not scope expansion.
 
-
-## 2026-05-12T00:00:00Z — History Summary (Compressed)
-
-**Previous sessions:** Initial parser implementation, xref/AcroForm handling, appearance repair, production audit, C# migration, security hardening (53 tests passing). See history-archive.md for pre-2026-05-19 session details.
-
-**Current slice:** narrow classic-xref parser with targeted indirect `/Length` support, fail-closed guards for encryption/XFA/streams/incremental-updates, signature boundary, and inheritance checks.
-
-
 ## 2026-05-15T07:04:03.456+01:00 — Production-Hardening Milestone (Issue #2) Complete
 
 **Executive Summary:** Issue #2 (Parser Hardening) complete, committed, and production-quality. All 10 fail-closed guards in place; parser now safely rejects unsupported PDF structures.
@@ -197,4 +192,5 @@ All 15 regression tests passing. The flattening engine now repairs broken appear
 **Robbie** added regression coverage for indirect /Length cases.
 **Decisions merged:** 6 inbox entries (roadmap, indirect-length cases, unsupported PDF categories).
 **Archive status:** decisions.md at 64026 bytes; no entries older than 7 days.
+
 
