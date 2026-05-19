@@ -39,7 +39,7 @@ Transformed the squad's work into a ship-ready GitHub repository: productization
 
 **Next for Impa:**
 Monitor workflow completion and verify NuGet publication. Repository is ready for v0.1.0 publication.
-- 2026-05-14T22:26:30.112+01:00 — Canonical GitHub remote for this repo is `https://github.com/jonnymuir/PDFFlatten.git` on branch `main`; publishing should use that origin directly. Baseline `dotnet test` currently fails because the expected root fixture `BAPSL_P60_Populated.pdf` is absent from the working tree.
+- 2026-05-14T22:26:30.112+01:00 — Canonical GitHub remote for this repo is `https://github.com/jonnymuir/PDFFlatten.git` on branch `main`; publishing should use that origin directly. Baseline `dotnet test` currently fails because the expected root expected Downloads-only populated real-form fixture is absent from the working tree.
 - 2026-05-14T23:04:38.903+01:00 — Production-readiness review verdict: PDFFlatten v0.1.0 is safe only for a constrained slice, not for broad arbitrary-PDF production use. Core reasons: parser/serializer support remains narrow (classic xref tables only, no xref/object streams or incremental `/Prev` handling), placement ignores important PDF transforms, inherited page resources can be broken by flattening, ASCII-only non-stream serialization risks content mangling, and the 15-test suite is strong for the synthetic slice but not for broad producer coverage.
 
 **2026-05-14T21:29:56Z — Scribe Session: Decision & Orchestration Processing**

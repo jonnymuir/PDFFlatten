@@ -8,11 +8,16 @@
 
 ## Learnings
 
+- 2026-05-19T13:01:12.611+01:00 — A flattened PDF is still not honestly flattened if `/StructTreeRoot` keeps widget objects reachable through `/Type /OBJR` children; prune those object references and the matching `/ParentTree /Nums` entries keyed by each widget’s `/StructParent` before claiming success on tagged PDFs like the Downloads-only encrypted NeedAppearances form.
+- 2026-05-19T13:01:12.611+01:00 — Empty-password Standard-security RC4-128 support is safe only as a parser-local decrypt-and-strip step; `src/PDFFlatten/Internals/PdfStandardEncryption.cs` must keep rejecting crypt filters, non-R3/V2 shapes, and non-empty-password flows while emitting plaintext rewritten output.
+- 2026-05-19T13:01:12.611+01:00 — Real Downloads-only encrypted-form flattening also depended on octal-escape decoding in `src/PDFFlatten/Internals/PdfReader.cs`; some encrypted Acrobat literal strings encoded ciphertext bytes with octal escapes, and without decoding them the widget-local `/DA` strings became unparseable before the narrow `/NeedAppearances` text synthesis lane in `src/PDFFlatten/PdfFlattener.cs`.
 - I own PDF internals: AcroForm fields, widget annotations, appearance streams, and flattening behavior.
 - The project's success depends on preserving rendered field appearances while removing interactive form behavior for iPhone printing.
 - 2026-05-18T12:35:10.553+01:00 — Security review result: the parser boundary materially reduces exploitability by rejecting incremental updates, encryption, xref/object streams, inherited operative field attributes, inherited page resources, rotated pages, and transformed/state-based appearances before any rewrite.
 - 2026-05-18T12:35:10.553+01:00 — Meaningful residual risk remains where flattening is only a rendering transform, not a sanitizer: non-widget annotations and other reachable objects survive serialization, so active content outside widget removal must not be treated as scrubbed.
 - 2026-05-18T12:35:10.553+01:00 — Added a fail-closed signature boundary in `src/PDFFlatten/PdfFlattener.cs`; `/FT /Sig` widgets now reject instead of being flattened into a visually preserved but no-longer-verifiable document. Guard covered in `tests/PDFFlatten.Tests/ParserHardeningTests.cs`.
+- 2026-05-19T12:51:51.572+01:00 — Real-file inspection of the Downloads-only encrypted NeedAppearances form showed the next plausible compatibility lane is not broad `/NeedAppearances` support but an exact direct text-widget slice: 12 `/Tx` widgets with self-contained `/V`, `/DA`, `/DR`, and `/Rect`, no `/AP`, direct page `/Annots` and `/Resources`, zero rotation, and widget-local `/He` font use.
+- 2026-05-19T12:51:51.572+01:00 — Locked the boundary in `.squad/decisions/inbox/zelda-appearance-generation-boundary.md`: only text-only generated `/AP /N` synthesis for exact-match widgets is defensible; inherited defaults, multiline/comb/rich-text behavior, non-text fields, and generic viewer-style appearance generation remain rejected.
 
 - 2026-05-14T21:39:55.268+01:00 — Implemented the first in-house PDF parser/serializer and AcroForm flattening path for classic xref-table PDFs.
 - 2026-05-14T21:39:55.268+01:00 — Learned that preserving appearance streams is only half the job; pruning unreachable widget objects keeps flattened output meaningfully non-interactive.
@@ -22,7 +27,7 @@
 **Peer Outcomes:**
 - **Impa:** Repo productization complete (GitHub docs, workflows, SourceLink, release automation).
 - **Purah:** `PdfFlattener.Flatten(Stream)` contract locked; package metadata finalized; NuGet build validated.
-- **Robbie:** 11 passing regression tests; `BAPSL_P60_Populated.pdf` fixture assertions; macOS-safe CI.
+- **Robbie:** 11 passing regression tests; Downloads-only populated real-form fixture assertions; macOS-safe CI.
 
 **Zelda's Role in Batch:**
 Built the engine that Purah's API wraps. Implemented xref table parsing, widget appearance reuse strategy, AcroForm removal, orphan pruning. This work is now end-to-end validated by Robbie's fixture tests.
@@ -157,6 +162,29 @@ All 15 regression tests passing. The flattening engine now repairs broken appear
 
 **Next for team:** Purah implements per specification. Robbie writes regression suite. Both reference the boundary document for validation. Impa reviews PR against boundary before merge.
 
+## 2026-05-19T09:06:49Z — Indirect Stream `/Length` Implementation Review (COMPLETE)
+
+**Session:** Zelda post-implementation review after Purah delivered the code.
+
+**Context:** Purah implemented indirect stream `/Length` support in `PdfParser.cs` while this session was in progress. Reviewed implementation against boundary specification.
+
+**Work Done:**
+- Analyzed implementation in PdfParser.cs lines 216–330: `ResolveStreamLength()` and `ResolveIndirectStreamLength()` methods.
+- Verified all boundary conditions:
+  - ✅ Single-level indirection resolved exactly once (lines 271–280).
+  - ✅ Self-referential cycle detection (lines 259–262).
+  - ✅ Chained indirection rejected (lines 289–298).
+  - ✅ Strict value validation: must exist, be direct `PdfNumber`, be integer, non-negative, within size limits (lines 264–329).
+  - ✅ Stream termination validation unchanged (lines 218–223).
+  - ✅ No general object resolver; scoped only to stream `/Length` parsing.
+  - ✅ No scope widening to other fields or PDF structures.
+- Reviewed test suite in `UnsupportedPdfGuardTests.cs`: all 6 tests for supported + rejection cases present and comprehensive.
+- Verified error messages are production-quality: "Indirect stream /Length objects must resolve directly to an integer."
+
+**Decision Recorded:** Implementation approved without changes. Stays within boundary; all hardening conditions met. Ready for merge.
+
+**Status:** ✅ Implementation is sound, bounded, and secure. No further review needed.
+
 ## 2026-05-19T09:06:49.650+01:00 — Unsupported PDF Categories Analysis (Post-Release Review)
 
 **Executive Summary:** Comprehensive inventory of PDFs that fail because PDFFlatten does not support indirect objects everywhere or keeps a narrow parser slice. Analysis distinguishes three classes: (A) classic PDFs we *should* probably support, (B) edge cases not worth supporting, (C) structures that widen parser/security surface and should remain rejected.
@@ -197,4 +225,3 @@ All 15 regression tests passing. The flattening engine now repairs broken appear
 **Robbie** added regression coverage for indirect /Length cases.
 **Decisions merged:** 6 inbox entries (roadmap, indirect-length cases, unsupported PDF categories).
 **Archive status:** decisions.md at 64026 bytes; no entries older than 7 days.
-

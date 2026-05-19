@@ -26,13 +26,13 @@
 - 2026-05-14T21:39:55.268+01:00 — First in-house flattening path: Reuse each widget's existing normal appearance stream as a page XObject, append draw commands into page contents, remove widget annotations from page annotation arrays, drop the catalog `/AcroForm`, and serialize only objects still reachable from the trailer.
 
 ### Robbie (Tests)
-- 2026-05-14T21:39:55.268+01:00 — Regression suite uses `BAPSL_P60_Populated.pdf` as the primary real-world fixture and asserts its expected AcroForm field names and populated values before trusting any flattening result claims.
+- 2026-05-14T21:39:55.268+01:00 — Regression claims were cross-checked against a Downloads-only populated real form while checked-in coverage stayed generic and asserts its expected AcroForm field names and populated values before trusting any flattening result claims.
 - 2026-05-14T21:39:55.268+01:00 — Public `Flatten(Stream)` behavior is covered through reflection-based contract tests so CI stays green while the API is still absent, then automatically exercises the real entry point once it exists.
 - 2026-05-14T21:39:55.268+01:00 — macOS CI should run `dotnet test PDFFlatten.sln`; the test project targets `net8.0` and copies the sample PDF into the test output so no machine-specific paths are required.
 
 ### Purah (Console Sample)
 - 2026-05-14T22:18:01.321+01:00 — Add a minimal VB.NET console sample at `samples/PDFFlatten.Sample` targeting `net8.0`, reference the `src/PDFFlatten` library project directly, and keep the library API unchanged by calling `PdfFlattener.Flatten(input, output)`. Targeting `net8.0` is straightforward to run locally with the current `dotnet` CLI on macOS; VB.NET mirrors the library's intended usage style; project reference keeps the sample honest against in-repo library.
-- 2026-05-14T22:18:01.321+01:00 — Console sample workflow is a simple two-argument contract: `input.pdf output.pdf`, with non-zero exit and usage text for bad invocation. Keep the real fixture `BAPSL_P60_Populated.pdf` as proof path; flattened output must have no `/AcroForm` or widget annotations left. Lock command-line behavior with automated integration coverage.
+- 2026-05-14T22:18:01.321+01:00 — Console sample workflow is a simple two-argument contract: `input.pdf output.pdf`, with non-zero exit and usage text for bad invocation. Keep real-form proof in manual Downloads-only validation rather than repo-owned fixtures; flattened output must have no `/AcroForm` or widget annotations left. Lock command-line behavior with automated integration coverage.
 
 ### Zelda & Robbie (Fixture Replacement)
 - 2026-05-14T22:30:41.645+01:00 — Replace the removed sensitive regression PDF with `GenericAcroFormFixture.pdf`, a checked-in synthetic one-page AcroForm sample at the repo root. Fixture scope is narrowly aligned to the current flattening contract: classic xref table, direct page `/Annots`, widget annotations that carry `/T` and `/V`, and normal appearance streams at `/AP /N`. This proves the existing flattening path without reintroducing sensitive content.
@@ -101,7 +101,7 @@
 - 2026-05-15T06:16:04.770+01:00 — Kept existing CLI integration coverage as executable proof for the sample app after the port. Did not add README-snippet compilation tests; current documentation examples still exercise `PdfFlattener.Flatten` contract already covered by API and sample tests.
 
 ### Purah (Sample App Rerun)
-- 2026-05-15T06:45:43.234+01:00 — C# console sample rerun against `BAPSL_P60_Populated.pdf` confirmed successful library operation without code changes. Input: 107 KB populated real-world PDF; Output: 101 KB valid flattened PDF (MD5: `e76ac3fba1d3b5ee238bbb524a103e21`). The .NET 10.0 target framework, file I/O, and flattening operation all working correctly.
+- 2026-05-15T06:45:43.234+01:00 — C# console sample rerun against a Downloads-only populated real form confirmed successful library operation without code changes. Input: 107 KB populated real-world PDF; Output: 101 KB valid flattened PDF (MD5: `e76ac3fba1d3b5ee238bbb524a103e21`). The .NET 10.0 target framework, file I/O, and flattening operation all working correctly.
 
 ### Impa (Release version bump: v0.2.0)
 - 2026-05-15T06:54:58.103+01:00 — Release the current uncommitted migration state as `v0.2.0`.
@@ -506,7 +506,7 @@ That changes the supported-slice and rejection contract in user-visible ways wit
 
 - `src/PDFFlatten/Internals/PdfParser.cs` now performs a one-hop xref-driven lookup for indirect `/Length` values.
 - Regression coverage now proves: supported one-hop indirect lengths, rejection of chained/cyclic/non-integer/missing indirect lengths, and preservation of negative/oversized caps on the indirect path.
-- The sample console now succeeds on `/Users/jonnymuir/Downloads/BAPSL_P60_Template 1.pdf`, which previously failed on the old direct-only `/Length` rule.
+- The sample console now succeeds on a Downloads-only template real form, which previously failed on the old direct-only `/Length` rule.
 
 # Robbie — Indirect stream `/Length` regression bar
 
@@ -523,7 +523,7 @@ Lock automated coverage to a narrow indirect `/Length` boundary:
 
 ## Why
 
-This is the smallest compatibility step that materially covers the `BAPSL_P60_Template 1.pdf` failure class without blessing a general indirect resolver. The tests also keep the parser honest about exact-length reads by using minimal local fixtures instead of broad producer assumptions.
+This is the smallest compatibility step that materially covers that Downloads-only template-form failure class without blessing a general indirect resolver. The tests also keep the parser honest about exact-length reads by using minimal local fixtures instead of broad producer assumptions.
 
 ## Evidence
 

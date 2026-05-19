@@ -31,7 +31,7 @@ Regression suite is the quality gate. All future work must keep tests green. Add
 **What I checked:**
 - Ran the existing regression suite (`dotnet test PDFFlatten.sln --configuration Release`) to confirm baseline quality before reviewing the sample workflow.
 - Reviewed the new `samples/PDFFlatten.Sample` console project, its README invocation, and its command-line contract.
-- Added CLI-focused integration tests for the missing-arguments path and for running the sample against `BAPSL_P60_Populated.pdf`.
+- Added CLI-focused integration tests for the missing-arguments path and for running the sample against a Downloads-only populated real form.
 
 **Outcome:**
 The sample app now runs end-to-end with input/output file arguments, produces a flattened PDF from the real fixture, and the suite is green with 13 passing tests.
@@ -39,7 +39,7 @@ The sample app now runs end-to-end with input/output file arguments, produces a 
 **Decision Merge (2026-05-14T21:22:32Z):**
 - Scribe archived Robbie's console sample review decision into `decisions.md`.
 - Console sample contract locked: two-argument CLI (`input.pdf output.pdf`), non-zero exit on bad invocation, usage text printed. Integration tests cover the happy path and error cases.
-- Fixture validation: `BAPSL_P60_Populated.pdf` flattened output must have no `/AcroForm` or widget annotations left.
+- Fixture validation: the Downloads-only populated real-form flattened output must have no `/AcroForm` or widget annotations left.
 - Orchestration log: `.squad/orchestration-log/2026-05-14T21:22:32Z-Robbie.md`.
 
 ## 2026-05-14T22:30:41.645+01:00 — Generic fixture audit
@@ -58,7 +58,7 @@ The active suite now depends on a generic populated AcroForm sample and proves t
 ## 2026-05-14T22:36:43.725+01:00 — Missing field values regression
 
 **What I checked:**
-- Flattened `/Users/jonnymuir/Downloads/BAPSL_P60_Populated.pdf` through the sample app and inspected the resulting PDF structure instead of trusting widget removal alone.
+- Flattened a Downloads-only populated real form through the sample app and inspected the resulting PDF structure instead of trusting widget removal alone.
 - Traced the real observable to flattened appearance XObjects: the suite needed to prove those XObjects still had usable font resources after `/AcroForm` removal.
 - Added a generic regression fixture where the widget appearance text depends on form-level font resources, then asserted the flattened output keeps those fonts resolvable.
 

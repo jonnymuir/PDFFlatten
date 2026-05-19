@@ -46,7 +46,7 @@ Impa converted post-release audit findings into GitHub issues that involve Purah
 
 **Context:** Purah's sample app rerun successful; decision batch captured and merged.
 
-- Reran `samples/PDFFlatten.Sample` with real-world PDF (`BAPSL_P60_Populated.pdf`, 107 KB)
+- Reran `samples/PDFFlatten.Sample` with a Downloads-only populated real form (107 KB)
 - Produced valid flattened output (101 KB, MD5: e76ac3fba1d3b5ee238bbb524a103e21)
 - No code changes required; library operating correctly on net10.0
 - C# portability decisions locked in squad decisions.md
@@ -101,14 +101,14 @@ Both `Flatten(Stream)` and `Flatten(Stream, Stream)` overloads updated with:
 
 ## 2026-05-15 Sample App Rerun
 - Date: 2026-05-15T07:25:15Z
-- Task: Rerun C# console sample on BAPSL_P60_Populated.pdf
+- Task: Rerun C# console sample on the Downloads-only populated form
 - Outcome: ✓ Success
 - Output: flattened.pdf (101 KB, MD5: e76ac3fba1d3b5ee238bbb524a103e21)
 - Status: Output ready for iPhone visibility check; no code changes required
 
 ## 2026-05-15T10:53:30Z — Session Handoff: Sample App Rerun Complete
 
-**Orchestration:** Purah successfully executed the sample app against `/Users/jonnymuir/Downloads/BAPSL_P60_Populated.pdf` and refreshed `/Users/jonnymuir/Downloads/flattened.pdf` for phone visibility validation. No code changes required; library operating nominally on production PDF.
+**Orchestration:** Purah successfully executed the sample app against a Downloads-only populated real form in `~/Downloads` and refreshed `/Users/jonnymuir/Downloads/flattened.pdf` for phone visibility validation. No code changes required; library operating nominally on production PDF.
 
 **Status:** flattened.pdf ready for phone check. Team decision batch (Issues #5, #6, #7 follow-ons) merged into decisions.md; five duplicated inbox entries cleaned.
 
@@ -136,6 +136,13 @@ Both `Flatten(Stream)` and `Flatten(Stream, Stream)` overloads updated with:
 
 ## Learnings
 
+### 2026-05-19T12:34:04.898+01:00 — Empty-password RC4 support stayed parser-local, but the Downloads-only encrypted form still needed appearances
+- **Architecture decision:** `src/PDFFlatten/Internals/PdfParser.cs` now allows only Standard-security RC4-128 encrypted inputs (`/V 2`, `/R 3`, no crypt filters) that open with the empty user password, decrypts strings/streams during object parsing, and removes trailer `/Encrypt` before serialization so flattened output is plain.
+- **Pattern:** For encrypted-PDF compatibility work, inspect the real file first, support one exact encryption dictionary shape locally, and keep every other mode rejected instead of introducing a password UX or third-party crypto dependency.
+- **Key blocker:** the Downloads-only encrypted NeedAppearances form still cannot flatten safely because all 12 widgets rely on `/NeedAppearances true` with `/DA` + `/V` but no `/AP /N`; supporting that would require appearance generation, not just decryption.
+- **Key file paths:** `src/PDFFlatten/Internals/PdfParser.cs`, `src/PDFFlatten/Internals/PdfStandardEncryption.cs`, `src/PDFFlatten/Internals/PdfStringEncoding.cs`, `src/PDFFlatten/Internals/PdfSerializer.cs`, `tests/PDFFlatten.Tests/UnsupportedPdfGuardTests.cs`, `tests/PDFFlatten.Tests/ParserHardeningTests.cs`, `README.md`.
+- **Verification:** `dotnet test --nologo` passed with 70/70 tests. `dotnet run --project samples/PDFFlatten.Sample -- ~/Downloads/DownloadsOnlyEncryptedForm.pdf artifacts/real-file-check/DownloadsOnlyEncryptedForm.flattened.pdf` now gets past encryption but still rejects on missing widget `/AP /N`.
+
 ### 2026-05-18T12:35:10.553+01:00 — Parser security caps and rejection normalization
 - **Architecture decision:** Keep the `netstandard2.0` in-memory parser/flattener, but harden it with explicit caps on whole-input buffering, direct stream `/Length` reads, and FlateDecode appearance inspection inflation instead of widening PDF support.
 - **Pattern:** In a PDF rewriter that must fully buffer input, bound each attacker-controlled amplification path separately and normalize malformed numeric/parse overflow cases into the documented rejection exceptions rather than leaking raw runtime exceptions.
@@ -147,8 +154,29 @@ Both `Flatten(Stream)` and `Flatten(Stream, Stream)` overloads updated with:
 - **Pattern:** For compatibility-only parser widenings, keep the new indirection local to the one field that truly needs it, reuse existing size/overflow guards, and reject chained references, cycles, missing objects, non-integer targets, and oversized lengths before any `endstream` validation changes.
 - **User preference:** Keep support additions narrow and fail-closed rather than broadening the supported slice opportunistically.
 - **Key file paths:** `src/PDFFlatten/Internals/PdfParser.cs`, `tests/PDFFlatten.Tests/UnsupportedPdfGuardTests.cs`, `tests/PDFFlatten.Tests/ParserHardeningTests.cs`, `README.md`, `samples/PDFFlatten.Sample/Program.cs`.
-- **Verification:** `dotnet test --nologo` passed with 67/67 tests, and `dotnet run --project samples/PDFFlatten.Sample -- /Users/jonnymuir/Downloads/BAPSL_P60_Template 1.pdf artifacts/sample-check/BAPSL_P60_Template-1.flattened.pdf` now succeeds on the previously rejected indirect-`/Length` pattern.
+- **Verification:** `dotnet test --nologo` passed with 67/67 tests, and `dotnet run --project samples/PDFFlatten.Sample -- ~/Downloads/DownloadsOnlyTemplateForm.pdf artifacts/sample-check/DownloadsOnlyTemplateForm.flattened.pdf` now succeeds on the previously rejected indirect-`/Length` pattern.
 
+
+
+### 2026-05-19T12:51:51.572+01:00 — The Downloads-only encrypted form now flattens through a narrow NeedAppearances text lane
+- **Architecture decision:** `src/PDFFlatten/PdfFlattener.cs` now synthesizes a Form XObject only for a very small `/NeedAppearances` slice: widget-local `/FT /Tx`, `/DA`, `/DR`, and string `/V`, left-aligned single-line semantics, and no existing `/AP`. The renderer lane stays separate from the existing `/AP /N` replay path and still rejects broader appearance-generation cases.
+- **Pattern:** When a real PDF is blocked by missing text appearances, pair the narrowest possible appearance synthesis with equally narrow prerequisite checks (font resource locality, tiny `/DA` grammar, simple field flags) instead of widening toward general PDF rendering.
+- **Coupled portability fix:** `src/PDFFlatten/Internals/PdfParser.cs` + `src/PDFFlatten/Internals/PdfStandardEncryption.cs` restore the empty-password Standard-security RC4-128 parser-local decryption slice needed to reach the widgets in the Downloads-only encrypted form, and `src/PDFFlatten/Internals/PdfStringEncoding.cs` keeps decrypted string bytes stable across `net462` and `netstandard2.0` serialization.
+- **Verification:** `dotnet test --nologo` passed with 74/74 tests. `dotnet run --project samples/PDFFlatten.Sample -- ~/Downloads/DownloadsOnlyEncryptedForm.pdf artifacts/real-file-check/DownloadsOnlyEncryptedForm.flattened.pdf` succeeded, and Quick Look first-page comparison for `artifacts/manual-real-form-validation/` rendered pixel-identical PNGs even though the thumbnail file hashes differed.
+- **Key file paths:** `src/PDFFlatten/PdfFlattener.cs`, `src/PDFFlatten/Internals/PdfParser.cs`, `src/PDFFlatten/Internals/PdfStandardEncryption.cs`, `src/PDFFlatten/Internals/PdfStringEncoding.cs`, `README.md`, `tests/PDFFlatten.Tests/PdfFlattenerTests.cs`, `tests/PDFFlatten.Tests/ParserHardeningTests.cs`, `tests/PDFFlatten.Tests/UnsupportedPdfGuardTests.cs`, `artifacts/real-file-check/DownloadsOnlyEncryptedForm.flattened.pdf`.
+
+### 2026-05-19T13:27:15.093+01:00 — Real-form references now stay Downloads-only and out of tracked repo surfaces
+- **Repository decision:** Scrubbed sensitive real-form names from tracked docs, histories, skills, logs, and decision notes so GitHub-facing or commit-bound materials stay generic.
+- **Pattern:** When a real customer form is useful for local smoke checks, keep validation manual in `~/Downloads`, but keep repo examples, tests, fixture names, and internal notes generic or sanitized.
+- **User preference:** Jonny does not want sensitive real-form references committed; real-form validation belongs only in the user's Downloads folder, not in repository workflows.
+- **Key file paths:** `.squad/decisions.md`, `.squad/decisions/inbox/`, `.squad/log/`, `.squad/orchestration-log/`, `.squad/skills/downloads-only-real-form-hygiene/SKILL.md`.
+- **Verification:** Searched the repository, including `.squad/` logs and inbox notes, and removed the sensitive real-form name family; `dotnet test --nologo` remains the repo validation lane after the cleanup.
+
+### 2026-05-19T15:43:16.541+01:00 — Release prep keeps the widened slice minor and the squad trail generic
+- **Architecture decision:** Treat the current change set as `v0.5.0`: it widens the supported slice (empty-password RC4-128, one-hop indirect `/Length`, narrow `/NeedAppearances` text synthesis) without changing the public API or the fail-closed compatibility posture.
+- **Pattern:** Before tagging a public release, scrub tracked squad notes and logs back to generic real-form wording so local Downloads smoke checks do not leak into repository history.
+- **Key file paths:** `Directory.Build.props`, `CHANGELOG.md`, `src/PDFFlatten/PDFFlatten.csproj`, `.squad/orchestration-log/purah-2026-05-14.log`, `.squad/agents/purah/history.md`.
+- **Verification:** `dotnet restore PDFFlatten.sln`, `dotnet build PDFFlatten.sln --configuration Release --no-restore`, `dotnet test PDFFlatten.sln --configuration Release --no-build`, and `dotnet pack src/PDFFlatten/PDFFlatten.csproj --configuration Release --no-build --output artifacts/release-check` all succeeded during release prep.
 
 ## Session 2026-05-18 — Security Hardening Round
 
@@ -178,3 +206,29 @@ Release v0.1.0 with security hardening locked in place.
 **Decisions merged:** 6 inbox entries (roadmap, indirect-length cases, unsupported PDF categories).
 **Archive status:** decisions.md at 64026 bytes; no entries older than 7 days.
 
+## 2026-05-19T15:15:24.993+01:00 — Release Readiness Audit
+
+**Task:** Inspect release mechanics without publishing, identify version bumping pattern, confirm NuGet publication triggers, check git hygiene.
+
+**Work Completed:**
+- **Version source:** `Directory.Build.props` → `<VersionPrefix>0.4.0</VersionPrefix>` (single source of truth for semantic versioning)
+- **Release trigger:** Tag-based GitHub Actions workflow:
+  - Create annotated tag `git tag -a v{X.Y.Z} -m "release: v{X.Y.Z}"` and push
+  - Workflow (`.github/workflows/release.yml`) auto-triggers on `v*` tags
+  - Runs visual regression tests (macOS), build, test, pack, GitHub release creation, and NuGet push
+  - NuGet API key stored as `NUGET_API_KEY` secret (confirmed present, last updated 2026-05-14T21:54:50Z)
+- **Build hygiene:** ✅ Release build succeeds with zero warnings/errors; multi-targeting (`net462` + `netstandard2.0`) confirmed valid
+- **Legacy real-form scan:** ✅ No lingering legacy real-form filenames present in repository
+- **Uncommitted blocker:** 33 items (squad records, README, implementation, tests) modified or untracked—gate blocked until committed
+- **Test suite:** Long-running visual regression tests in progress; expected 74/74 pass (no code breakage detected)
+
+**Release Mechanics Confirmed:**
+- Version bumps: single `Directory.Build.props` edit, commit, tag
+- NuGet publish: fully automated via GitHub Actions upon tag push
+- Dual-targeting asset split: `net462` DLL + `netstandard2.0` DLL packaged correctly
+- Documentation: embedded README via `.csproj` link; XML docs generated
+- Source link: SourceLink enabled for debugger symbol downloads
+
+**Blocking Gate:** Commit all 33 items before tagging. Version number in `Directory.Build.props` will determine package semantic version; tag `git push origin v{X.Y.Z}` to trigger publication.
+
+**Decision Recorded:** `.squad/decisions/inbox/purah-release-readiness-audit.md`

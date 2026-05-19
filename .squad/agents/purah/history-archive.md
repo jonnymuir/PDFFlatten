@@ -52,7 +52,7 @@
 **Peer Outcomes:**
 - **Impa:** Repo productization complete (GitHub docs, workflows, SourceLink, release automation).
 - **Zelda:** In-house PDF flattening engine live; widget appearance reuse; orphan pruning; edge cases documented.
-- **Robbie:** 11 passing regression tests; `BAPSL_P60_Populated.pdf` fixture assertions; macOS-safe CI.
+- **Robbie:** 11 passing regression tests; Downloads-only populated real-form fixture assertions; macOS-safe CI.
 
 **Purah's Role in Batch:**
 Locked down the public surface: `PdfFlattener.Flatten(Stream)` contract, output-stream overload, package metadata. This stable API shields Zelda's implementation from thrashing and allows Robbie to write lasting tests.
@@ -67,7 +67,7 @@ API is stable for the foreseeable future. Future enhancements (e.g., field value
 **Work completed:**
 - Added `samples/PDFFlatten.Sample`, a minimal VB.NET `net8.0` console app wired into `PDFFlatten.sln`.
 - Implemented two-argument CLI handling (`input-file`, `output-file`) that calls `PdfFlattener.Flatten(input, output)` without changing the public API.
-- Updated `README.md` with a direct `dotnet run --project ...` example for `BAPSL_P60_Populated.pdf`.
+- Updated `README.md` with a direct `dotnet run --project ...` example for a Downloads-only populated real form.
 
 **Takeaway:** For portability-first libraries, keep runnable examples on a modern executable target like `net8.0` while leaving the reusable library on `netstandard2.0`; that gives a friction-free local smoke-test path without sacrificing package reach.
 
@@ -82,7 +82,7 @@ API is stable for the foreseeable future. Future enhancements (e.g., field value
 **Context:** Jonny moved the real-world PDF into `~/Downloads` and wanted the sample app run there so the flattened result could be tested from a phone.
 
 **Work completed:**
-- Resolved the hinted filename `BAPSL_P60_Populated.pd` to the single clear Downloads match `BAPSL_P60_Populated.pdf`.
+- Resolved the hinted filename hint for the Downloads-only populated real form to the single clear Downloads match.
 - Ran `dotnet restore`, `dotnet build PDFFlatten.sln --configuration Release`, and `dotnet test PDFFlatten.sln --configuration Release` successfully before executing the sample.
 - Executed the VB.NET console sample against the Downloads PDF and produced `~/Downloads/flattened.pdf`.
 
@@ -93,7 +93,7 @@ API is stable for the foreseeable future. Future enhancements (e.g., field value
 **Session:** Scribe orchestration for Zelda & Purah spawn manifest
 
 **Work completed:**
-- Downloaded PDF (`BAPSL_P60_Populated.pdf`) successfully flattened via console sample to `~/Downloads/flattened.pdf`.
+- Downloaded populated real form successfully flattened via console sample to `~/Downloads/flattened.pdf`.
 - All builds and tests clean (13/13 regression suite passing).
 - Orchestration log: `.squad/orchestration-log/purah-2026-05-14.log`.
 - Sample end-to-end workflow documented and locked.

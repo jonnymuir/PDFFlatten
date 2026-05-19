@@ -25,7 +25,7 @@
 **Peer Outcomes:**
 - **Impa:** Repo productization complete (GitHub docs, workflows, SourceLink, release automation).
 - **Purah:** `PdfFlattener.Flatten(Stream)` contract locked; package metadata finalized; NuGet build validated.
-- **Robbie:** 11 passing regression tests; `BAPSL_P60_Populated.pdf` fixture assertions; macOS-safe CI.
+- **Robbie:** 11 passing regression tests; Downloads-only populated real-form fixture assertions; macOS-safe CI.
 
 **Zelda's Role in Batch:**
 Built the engine that Purah's API wraps. Implemented xref table parsing, widget appearance reuse strategy, AcroForm removal, orphan pruning. This work is now end-to-end validated by Robbie's fixture tests.
