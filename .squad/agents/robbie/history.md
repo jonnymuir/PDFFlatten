@@ -33,6 +33,8 @@
 
 ## Learnings
 
+- 2026-05-19T08:44:49.253+01:00 — Running `dotnet run --project samples/PDFFlatten.Sample -- /Users/jonnymuir/Downloads/BAPSL_P60_Template 1.pdf /Users/jonnymuir/Downloads/BAPSL_P60_Template 1.flattened.pdf` now rejects this real form with `NotSupportedException` text "Only streams with direct integer /Length values are supported."; the input contains indirect stream lengths, which matches `tests/PDFFlatten.Tests/UnsupportedPdfGuardTests.cs` and looks like expected fail-closed rejection rather than a regression.
+- 2026-05-19T08:44:49.253+01:00 — The sample console in `samples/PDFFlatten.Sample/Program.cs` creates the destination file before calling `PdfFlattener.Flatten(...)`, so a failed run can leave an empty placeholder; for this rejection case, the inspectable fallback copy is `/Users/jonnymuir/Downloads/BAPSL_P60_Template 1.fallback-original.pdf`, byte-identical to the source.
 - 2026-05-18T12:35:10.553+01:00 — Real-world rerun path stays `dotnet run --project samples/PDFFlatten.Sample -- /Users/jonnymuir/Downloads/BAPSL_P60_Populated.pdf /Users/jonnymuir/Downloads/BAPSL_P60_Populated.flattened.pdf`; on the current hardened tree it still succeeds cleanly, produces `e76ac3fba1d3b5ee238bbb524a103e21` at the output path, and Quick Look renders the flattened PDF without the CoreGraphics warning seen on the original input.
 - 2026-05-18T12:35:10.553+01:00 — The fail-closed fallback example is now executable in `tests/PDFFlatten.Tests/DocumentedFallbackTests.cs`: cover both `NotSupportedException` (real rejected producer-corpus input) and `InvalidOperationException` (malformed synthetic input), and assert the caller logs a warning, leaves the source file untouched, and copies the original bytes to the fallback output path.
 
@@ -69,3 +71,19 @@ All regression tests passing; security regression bar complete and locked.
 
 ### Next
 Release v0.1.0 with security hardening regression coverage complete.
+
+## 2026-05-19T08:44:49Z — P60 Template Test Run
+
+**Agent Request:** Run BAPSL_P60_Template 1.pdf through current sample flow.
+
+**Input:** `/Users/jonnymuir/Downloads/BAPSL_P60_Template 1.pdf`
+
+**Outcome:** Rejected (fail-closed). PDF contains indirect stream `/Length`, triggering hardened validation gate.
+
+**Result:** NotSupportedException — "Only streams with direct integer /Length values are supported."
+
+**Fallback:** `/Users/jonnymuir/Downloads/BAPSL_P60_Template 1.fallback-original.pdf` (byte-identical copy)
+
+**Verdict:** Expected behavior confirmed. Hardening regression gate operational. Fail-closed path functional.
+
+**Scribe Note:** Inbox merge from 2026-05-19 completed; Impa/Purah release-path consensus locked on v0.4.0 + net462 multi-targeting as next release.

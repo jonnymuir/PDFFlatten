@@ -321,3 +321,129 @@
 ### Robbie (Security Hardening Regression Bar)
 - 2026-05-18T12:35:10.553+01:00 — Lock the security regression bar with focused negative tests for: `/FT /Sig` fail-closed rejection, oversized input stream rejection, oversized direct stream `/Length` rejection, `FlateDecode` appearance inflation-cap rejection, malformed `startxref` integer overflow and negative `/Length` normalization to `InvalidOperationException`.
 - 2026-05-18T12:35:10.553+01:00 — Security regression coverage ensures callers can trust flattening as a safe rejection boundary for hostile PDFs.
+
+## 2026-05-19 Inbox Merge (2026-05-19T08:44:49Z)
+
+
+### impa-framework-compat.md
+# Impa — Framework compatibility judgment
+
+Date: 2026-05-18
+
+## Decision
+For a .NET Framework 4.6.2 consumer, staying `netstandard2.0` alone does **not** reliably remove binding-redirect / support-assembly pain. The clean repo-side move is to **multi-target** the package:
+
+- keep `netstandard2.0` for modern .NET and broad portability
+- add `net462` specifically for legacy .NET Framework consumers
+
+If the goal is specifically **"no parent web.config surgery because of this package"**, a dedicated `net462` asset is the only realistic package-side answer.
+
+## Judgment by option
+
+### 1) Stay `netstandard2.0` only
+Reject as the answer to this problem.
+
+Reason: the pain is not coming from PDFFlatten's own package dependencies; it comes from how `.NET Framework 4.6.2` consumes `netstandard2.0` libraries (facades/support assemblies/binding redirects). A dependency-free `netstandard2.0` package can still force the consuming web app to carry redirect/config baggage.
+
+### 2) Retarget entirely to `net462`
+Too blunt.
+
+It would likely improve the 4.6.2 app experience, but it would throw away the project's current cross-runtime value proposition for modern .NET consumers.
+
+### 3) Multi-target `net462;netstandard2.0`
+Recommended.
+
+This keeps the portable story while giving NuGet a framework-specific asset for old .NET Framework apps. That is the practical way to reduce or avoid parent-app binding redirect requirements attributable to PDFFlatten.
+
+## Honesty check
+Supporting `.NET Framework 4.6.2` with **zero** parent-config problems in every ASP.NET/VB.NET app is not a promise I would make. Web apps can still have other assembly conflicts. But supporting 4.6.2 **without config churn caused by this package** is realistic if PDFFlatten ships a `net462` build and stays dependency-free.
+
+## Strategic recommendation
+1. Keep the product posture broad, but stop pretending `netstandard2.0`-only is the cleanest experience for legacy Framework web apps.
+2. Ship `net462;netstandard2.0` from one package.
+3. Keep the code identical across targets unless a real divergence appears.
+4. If maintaining `net462` becomes costly, the honest next step is **raise the practical compatibility floor to .NET Framework 4.7.2+**, not keep promising a frictionless 4.6.2 experience from `netstandard2.0` alone.
+
+## Bottom line
+If Jonny wants to avoid touching the parent VB.NET 4.6.2 web app, the repo-side answer is **multi-target**. If he wants a guarantee that legacy Framework quirks disappear completely, the honest answer is **no**—that guarantee only really starts once the consumer upgrades its framework baseline.
+
+
+### impa-net462-release-version.md
+# Impa — net462 release version decision
+
+- **Date:** 2026-05-18
+- **Recommended release:** `v0.3.3`
+
+## Decision
+
+Ship the multi-targeting change as **v0.3.3**.
+
+## Why this is the right bump
+
+This change is package-consumer facing, but it is still a **patch-sized** change in this repo's release posture:
+
+- the public API does not change
+- the PDF supported slice does not change
+- the flattening behavior and rejection contract do not broaden
+- modern consumers still use the existing `netstandard2.0` asset
+- .NET Framework 4.6.2 consumers simply get a better-selected asset (`net462`) that avoids the known `netstandard` facade / `System.ValueTuple` friction
+
+That is best described as a **compatibility packaging fix**, not a new product milestone.
+
+## Why not `v0.4.0`
+
+A minor bump would imply a broader capability or scope step. This release does not add new PDF functionality, widen the supported structures, or change the product claim. It improves installation/runtime ergonomics for one existing consumer segment.
+
+## Release wording
+
+Purah should frame it plainly: same library behavior, same supported slice, better .NET Framework 4.6.2 consumption.
+
+## Bottom line
+
+**Release now as `v0.3.3`** (NuGet package `0.3.3`, git tag `v0.3.3`).
+
+
+### impa-release-version.md
+# Impa — Release Version Decision
+
+- **Date:** 2026-05-18
+- **Recommended release:** `v0.4.0`
+
+## Why this is the right bump
+
+This unreleased delta is more than a confidence-only patch:
+
+- adds new package-visible fail-closed behavior for digital signature fields (`/FT /Sig`)
+- adds explicit input, stream, and inflated-appearance size caps that can now reject PDFs previously attempted in-memory
+- normalizes malformed numeric/length failures into the documented `InvalidOperationException` rejection contract
+- documents and regression-tests the consumer fallback path for rejected PDFs
+
+That changes the supported-slice and rejection contract in user-visible ways without introducing a new public API. Practical call: ship it as the next **minor** pre-1.0 release, not `0.3.2`.
+
+
+### purah-net462-release.md
+# 2026-05-18 — Release-facing metadata for direct net462 compatibility ship
+
+- **Decision:** Prepare the `net462;netstandard2.0` compatibility update for release as **v0.4.0** and align release-facing metadata with that consumer-visible packaging change.
+- **Why:** Impa's semver call is available (`v0.4.0`), and the new direct `net462` asset materially changes package selection for .NET Framework 4.6.2 consumers even though the public API stays the same.
+- **Release metadata:** Stamp `CHANGELOG.md` with the `0.4.0` release entry, update `Directory.Build.props` `VersionPrefix` to `0.4.0`, and replace stale package release notes with the net462/netstandard2.0 compatibility summary so NuGet consumers see the actual runtime story.
+- **Compatibility note:** The goal is narrower than "all legacy Framework pain disappears"—the package should stop causing the specific `netstandard` facade/`System.ValueTuple` churn that old ASP.NET apps hit when only a `netstandard2.0` asset is available.
+
+
+### purah-release.md
+# 2026-05-18 — Release version selection for current hardening delta
+
+- **Decision:** Ship the current working tree as **v0.3.2**.
+- **Why this version:** The delta hardens fail-closed behavior, tightens resource limits, normalizes malformed-input exceptions, and adds fallback/security regression coverage without widening the public API or supported PDF slice. That fits a patch release better than a minor bump.
+- **Release-facing implications:** Stamp `CHANGELOG.md` and package release notes around security caps, exception-contract normalization, and the documented fallback example so NuGet/GitHub consumers see the real scope of the release.
+- **Validation bar:** Run the existing release confidence lane (`restore`, `build`, `test`, `pack`) before tagging and pushing.
+
+
+### purah-valuetuple-compat.md
+# 2026-05-18 — Ship direct net462 asset beside netstandard2.0
+
+- **Decision:** Multi-target `src/PDFFlatten/PDFFlatten.csproj` for `net462;netstandard2.0` instead of shipping only `netstandard2.0`.
+- **Why:** The package assembly itself does not reference `System.ValueTuple`, but a .NET Framework 4.6.2 consumer of a `netstandard2.0`-only package gets the old `netstandard` compatibility facade expansion, which injects `System.ValueTuple.dll` plus binding redirects at build/runtime. Legacy ASP.NET/VB.NET apps are where that often falls apart.
+- **Expected effect:** NuGet should select `lib/net462/PDFFlatten.dll` for .NET Framework 4.6.2 parents, avoiding the `System.ValueTuple` shim dependency without forcing app-level binding redirect/package work in the parent site.
+- **Evidence:** `PDFFlatten.dll` references only `netstandard`; simulated `net462` consumer builds showed `ImplicitlyExpandNETStandardFacades` copying `System.ValueTuple.dll` from `Microsoft.NET.Build.Extensions` when only the `netstandard2.0` asset was available.
+
