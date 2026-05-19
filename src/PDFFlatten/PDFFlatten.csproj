@@ -17,7 +17,7 @@
     <PackageReadmeFile>README.md</PackageReadmeFile>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageRequireLicenseAcceptance>false</PackageRequireLicenseAcceptance>
-    <PackageReleaseNotes>Compatibility update: package now multi-targets net462 and netstandard2.0 so .NET Framework 4.6.2 consumers can load a direct framework asset instead of the old netstandard/System.ValueTuple facade path, while modern .NET consumers keep the netstandard2.0 asset.</PackageReleaseNotes>
+    <PackageReleaseNotes>Narrow supported-slice expansion: adds empty-password RC4-128 Standard-security input handling, single-hop indirect stream /Length support, and bounded /NeedAppearances text appearance synthesis while keeping the public API and fail-closed posture unchanged.</PackageReleaseNotes>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
   </PropertyGroup>
 

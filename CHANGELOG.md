@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 ## [Unreleased]
 
+## [0.5.0] - 2026-05-19T15:43:16.541+01:00
+
+### Added
+- Narrow support for empty-password Standard-security RC4-128 AcroForm PDFs, with parser-local decryption and unencrypted rewritten output.
+- Narrow support for single-hop indirect stream `/Length` integers and `/NeedAppearances`-driven single-line text appearance synthesis when widgets carry self-contained `/DA`, `/DR`, and `/V` data.
+- Regression coverage for the encrypted supported slice, indirect `/Length` boundary cases, and the new text-appearance synthesis lane. Full suite now passes at 77 tests.
+
+### Changed
+- Scrubbed the remaining legacy real-form shorthand from tracked squad artifacts so release notes and logs stay generic before tagging a public release.
+
+### Documentation
+- Updated README supported-slice, rejection, and limitation guidance to reflect the narrow encrypted-input lane, indirect `/Length` support, and the bounded `/NeedAppearances` text path.
+
 ## [0.4.0] - 2026-05-18T18:32:01.569+01:00
 
 ### Changed
