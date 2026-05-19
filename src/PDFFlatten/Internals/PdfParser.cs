@@ -11,6 +11,8 @@ namespace PDFFlatten.Internals;
 /// </summary>
 internal static class PdfParser
 {
+    private const string IndirectStreamLengthMustResolveDirectlyMessage = "Indirect stream /Length objects must resolve directly to an integer.";
+
     internal static PdfDocument Parse(byte[] data)
     {
         if (data is null)
@@ -25,7 +27,8 @@ internal static class PdfParser
 
         var startXref = FindStartXref(data);
         var parsedXref = ParseXref(data, startXref);
-        RejectUnsupportedTrailer(parsedXref.Trailer);
+        var encryption = PdfStandardEncryption.CreateIfSupported(parsedXref.Trailer, data, parsedXref.Entries);
+        RejectUnsupportedTrailer(parsedXref.Trailer, encryption);
         var inUseEntries = parsedXref.Entries.Values.Where(entry => entry.InUse).ToArray();
         if (inUseEntries.Length == 0)
         {
@@ -42,14 +45,14 @@ internal static class PdfParser
 
         foreach (var entry in inUseEntries.OrderBy(item => item.ObjectNumber))
         {
-            var pdfObject = ParseObject(data, entry.Offset);
+            var pdfObject = ParseObject(data, entry, parsedXref.Entries, encryption);
             RejectUnsupportedObject(pdfObject);
             objects.Add(pdfObject);
         }
 
         var preamble = new byte[firstObjectOffset];
         Array.Copy(data, 0, preamble, 0, firstObjectOffset);
-        return new PdfDocument((byte[])data.Clone(), preamble, parsedXref.Trailer, objects);
+        return new PdfDocument((byte[])data.Clone(), preamble, parsedXref.Trailer, objects, wasDecrypted: encryption is not null);
     }
 
     internal static void SkipWhiteSpaceAndComments(byte[] data, ref int position)
@@ -181,8 +184,13 @@ internal static class PdfParser
         }
     }
 
-    private static PdfIndirectObject ParseObject(byte[] data, int offset)
+    private static PdfIndirectObject ParseObject(
+        byte[] data,
+        XrefEntry entry,
+        IDictionary<int, XrefEntry> xrefEntries,
+        PdfStandardEncryption? encryption)
     {
+        var offset = entry.Offset;
         if (offset < 0 || offset >= data.Length)
         {
             throw new InvalidOperationException("Indirect object offset points outside the PDF data.");
@@ -205,26 +213,12 @@ internal static class PdfParser
             reader.ReadKeyword();
             reader.ConsumeStreamLineEnding();
 
-            if (!dictionary.TryGetValue("Length", out var lengthValue))
+            if (!dictionary.TryGetValue("Length", out var lengthValue) || lengthValue is null)
             {
                 throw new NotSupportedException("Streams without /Length are not supported.");
             }
 
-            if (lengthValue is not PdfNumber lengthNumber || !lengthNumber.IsInteger)
-            {
-                throw new NotSupportedException("Only streams with direct integer /Length values are supported.");
-            }
-
-            var streamLength = PdfSecurityLimits.RequireInt32(lengthNumber, "stream /Length");
-            if (streamLength < 0)
-            {
-                throw new InvalidOperationException("Stream /Length must be non-negative.");
-            }
-
-            if (streamLength > PdfSecurityLimits.MaxStreamBytes)
-            {
-                throw new NotSupportedException($"Streams longer than {PdfSecurityLimits.MaxStreamBytes.ToString(CultureInfo.InvariantCulture)} bytes are not supported.");
-            }
+            var streamLength = ResolveStreamLength(lengthValue, data, xrefEntries, objectNumber, generation);
 
             var streamData = reader.ReadBytes(streamLength);
             reader.SkipPotentialStreamTerminator();
@@ -236,6 +230,11 @@ internal static class PdfParser
             value = new PdfStream(dictionary, streamData);
         }
 
+        if (encryption is not null && encryption.AppliesTo(objectNumber, generation))
+        {
+            value = encryption.DecryptObjectValue(value, objectNumber, generation);
+        }
+
         reader.SkipWhiteSpaceAndComments();
         if (reader.ReadKeyword() != "endobj")
         {
@@ -245,16 +244,118 @@ internal static class PdfParser
         return new PdfIndirectObject(objectNumber, generation, value);
     }
 
-    private static void RejectUnsupportedTrailer(PdfDictionary trailer)
+    private static int ResolveStreamLength(
+        PdfValue lengthValue,
+        byte[] data,
+        IDictionary<int, XrefEntry> xrefEntries,
+        int ownerObjectNumber,
+        int ownerGeneration)
+    {
+        return lengthValue switch
+        {
+            PdfNumber directNumber => ValidateStreamLength(directNumber),
+            PdfIndirectReference indirectReference => ResolveIndirectStreamLength(indirectReference, data, xrefEntries, ownerObjectNumber, ownerGeneration),
+            _ => throw new NotSupportedException(IndirectStreamLengthMustResolveDirectlyMessage)
+        };
+    }
+
+    private static int ResolveIndirectStreamLength(
+        PdfIndirectReference reference,
+        byte[] data,
+        IDictionary<int, XrefEntry> xrefEntries,
+        int ownerObjectNumber,
+        int ownerGeneration)
+    {
+        if (reference.ObjectNumber == ownerObjectNumber && reference.Generation == ownerGeneration)
+        {
+            throw new NotSupportedException(IndirectStreamLengthMustResolveDirectlyMessage);
+        }
+
+        if (!xrefEntries.TryGetValue(reference.ObjectNumber, out var entry)
+            || !entry.InUse
+            || entry.Generation != reference.Generation)
+        {
+            throw new InvalidOperationException($"Stream /Length reference {reference.ObjectNumber} {reference.Generation} R was not found.");
+        }
+
+        var reader = new PdfReader(data, entry.Offset);
+        var objectNumber = reader.ReadInteger();
+        var generation = reader.ReadInteger();
+        var keyword = reader.ReadKeyword();
+        if (objectNumber != reference.ObjectNumber
+            || generation != reference.Generation
+            || !string.Equals(keyword, "obj", StringComparison.Ordinal))
+        {
+            throw new InvalidOperationException("Indirect object header is malformed.");
+        }
+
+        var value = reader.ReadValue();
+        reader.SkipWhiteSpaceAndComments();
+        if (value is PdfDictionary && reader.PeekKeyword() == "stream")
+        {
+            throw new NotSupportedException(IndirectStreamLengthMustResolveDirectlyMessage);
+        }
+
+        if (value is PdfIndirectReference nestedReference)
+        {
+            if (nestedReference.ObjectNumber == reference.ObjectNumber
+                && nestedReference.Generation == reference.Generation)
+            {
+                throw new NotSupportedException(IndirectStreamLengthMustResolveDirectlyMessage);
+            }
+
+            throw new NotSupportedException(IndirectStreamLengthMustResolveDirectlyMessage);
+        }
+
+        if (reader.ReadKeyword() != "endobj")
+        {
+            throw new InvalidOperationException("Indirect /Length object did not terminate with endobj.");
+        }
+
+        if (value is not PdfNumber lengthNumber)
+        {
+            throw new NotSupportedException(IndirectStreamLengthMustResolveDirectlyMessage);
+        }
+
+        return ValidateStreamLength(lengthNumber);
+    }
+
+    private static int ValidateStreamLength(PdfNumber lengthNumber)
+    {
+        if (!lengthNumber.IsInteger)
+        {
+            throw new NotSupportedException(IndirectStreamLengthMustResolveDirectlyMessage);
+        }
+
+        var streamLength = PdfSecurityLimits.RequireInt32(lengthNumber, "stream /Length");
+        if (streamLength < 0)
+        {
+            throw new InvalidOperationException("Stream /Length must be non-negative.");
+        }
+
+        if (streamLength > PdfSecurityLimits.MaxStreamBytes)
+        {
+            throw new NotSupportedException($"Streams longer than {PdfSecurityLimits.MaxStreamBytes.ToString(CultureInfo.InvariantCulture)} bytes are not supported.");
+        }
+
+        return streamLength;
+    }
+
+    private static void RejectUnsupportedTrailer(PdfDictionary trailer, PdfStandardEncryption? encryption)
     {
         if (trailer.TryGetValue("Prev", out _))
         {
             throw new NotSupportedException("Incremental-update PDFs are not supported; the trailer /Prev chain must be absent.");
         }
 
-        if (trailer.TryGetValue("Encrypt", out _))
+        if (trailer.TryGetValue("Encrypt", out _) && encryption is null)
         {
-            throw new NotSupportedException("Encrypted PDFs are not supported; trailer /Encrypt must be absent.");
+            throw new NotSupportedException("Encrypted PDFs are only supported for the Standard security handler using revision 3 RC4-128, without crypt filters, and with an empty user password.");
+        }
+
+        if (encryption is not null)
+        {
+            trailer.Remove("Encrypt");
         }
 
         if (trailer.TryGetValue("XRefStm", out _))

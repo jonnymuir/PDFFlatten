@@ -235,6 +235,23 @@ internal sealed class PdfReader
                     case (byte)'\\':
                         builder.Append((char)escaped);
                         break;
+                    case >= (byte)'0' and <= (byte)'7':
+                    {
+                        var octalValue = escaped - (byte)'0';
+                        var octalDigitsRead = 1;
+                        while (octalDigitsRead < 3
+                               && _position < _data.Length
+                               && _data[_position] >= (byte)'0'
+                               && _data[_position] <= (byte)'7')
+                        {
+                            octalValue = (octalValue * 8) + (_data[_position] - (byte)'0');
+                            _position += 1;
+                            octalDigitsRead += 1;
+                        }
+
+                        builder.Append((char)octalValue);
+                        break;
+                    }
                     case 10:
                     case 13:
                         if (escaped == 13 && _position < _data.Length && _data[_position] == 10)

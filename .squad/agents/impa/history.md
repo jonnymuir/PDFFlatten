@@ -20,6 +20,12 @@
 
 ## Learnings
 
+- 2026-05-19T13:01:12.611+01:00 — Review finding: removing page `/Annots` plus catalog `/AcroForm` is not enough to guarantee widget removal in real files. The Downloads-only encrypted NeedAppearances form still serializes 12 `/Subtype /Widget` objects because the structure tree keeps `/OBJR` references to them, so any approved “flattened” claim for this slice must either prune those logical-structure references or reject such files fail-closed (`PdfFlattener.cs`, `PdfSerializer.cs`, manual Downloads-only encrypted-form validation).
+- 2026-05-19T12:51:51.572+01:00 — The Downloads-only encrypted NeedAppearances form proves there is a tempting near-slice for `/NeedAppearances` forms, but the only architecture-safe expansion is an exact-match lane for direct `/FT /Tx` widgets that already carry self-contained `/V`, `/DA`, `/DR`, direct page `/Annots`, direct page `/Resources`, zero rotation, and no existing `/AP`; anything broader becomes a general appearance renderer and should be rejected (`PdfFlattener.cs`, manual Downloads-only encrypted-form validation).
+- 2026-05-19T12:51:51.572+01:00 — Until that exact text-field lane is implemented with fail-closed gates plus viewer-backed regression proof, `PdfFlattener.Flatten` should continue rejecting `/NeedAppearances`-only widgets with the current `/AP /N` requirement rather than claiming broader compatibility (`PdfFlattener.cs`, `ParserHardeningTests.cs`, `.squad/decisions/inbox/impa-appearance-generation-scope.md`).
+
+- 2026-05-19T12:34:04.898+01:00 — Encrypted-PDF scope review: the Downloads-only encrypted NeedAppearances form is decryptable with empty-password Standard security (`/Filter /Standard /V 2 /R 3 /Length 128`), but the decrypted file still falls outside the flattening slice because its widgets omit `/AP /N` and depend on `/NeedAppearances`; encryption is therefore not the binding capability gap (`PdfFlattener.cs`, `ParserHardeningTests.cs`, `.squad/decisions/inbox/impa-encrypted-pdf-boundary.md`).
+- 2026-05-19T12:34:04.898+01:00 — If encrypted support is ever approved, keep it as a pre-parse decrypt-only lane for empty-password Standard-handler RC4 files and re-apply all existing fail-closed flattening guards unchanged; do not combine it with appearance generation or sanitization claims (`PdfParser.cs`, `PdfFlattener.cs`, `.squad/skills/encrypted-pdf-feasibility-check/SKILL.md`).
 - 2026-05-18T12:35:10.553+01:00 — Security review: the library's main safety strength is its fail-closed supported slice (`PdfFlattener.cs`, `PdfParser.cs`, `ParserHardeningTests.cs`, `UnsupportedPdfGuardTests.cs`), but two real availability gaps remain: unbounded memory/decompression work (`PdfFlattener.cs` around full-input buffering and `InflateData`) and malformed-input paths that can escape the documented rejection contract as raw `OverflowException`/`OutOfMemoryException`.
 - 2026-05-18T12:35:10.553+01:00 — Flattening is a stream-only API with no intrinsic file/path attack surface; documented fallback/file handling lives in tests/docs (`DocumentedFallbackTests.cs`) rather than the library surface.
 - 2026-05-18T12:35:10.553+01:00 — The serializer keeps all reachable non-form objects (`PdfSerializer.cs`), so flattening should be treated as form-flattening only, not PDF sanitization.
@@ -49,4 +55,3 @@
 **Robbie** added regression coverage for indirect /Length cases.
 **Decisions merged:** 6 inbox entries (roadmap, indirect-length cases, unsupported PDF categories).
 **Archive status:** decisions.md at 64026 bytes; no entries older than 7 days.
-

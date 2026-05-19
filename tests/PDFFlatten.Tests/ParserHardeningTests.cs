@@ -9,13 +9,13 @@ namespace PDFFlatten.Tests;
 public sealed class ParserHardeningTests
 {
     [Test]
-    public void Flatten_rejects_encrypted_pdfs()
+    public void Flatten_rejects_unsupported_encrypted_pdfs()
     {
-        using var input = new MemoryStream(UnsupportedPdfFactory.CreateEncryptedWidgetPdf());
+        using var input = new MemoryStream(EncryptedPdfFixtureFactory.CreateUnsupportedRc4_40EncryptedNeedAppearancesWidgetPdf());
 
         Assert.That(
             () => PdfFlattener.Flatten(input),
-            Throws.TypeOf<NotSupportedException>().With.Message.Contains("/Encrypt"));
+            Throws.TypeOf<NotSupportedException>().With.Message.Contains("Encrypted PDFs are only supported"));
     }
 
     [Test]
@@ -99,6 +99,26 @@ public sealed class ParserHardeningTests
     }
 
     [Test]
+    public void Flatten_rejects_need_appearances_widgets_without_widget_local_font_resources()
+    {
+        using var input = new MemoryStream(UnsupportedPdfFactory.CreateNeedAppearancesWidgetWithoutAppearancePdf());
+
+        Assert.That(
+            () => PdfFlattener.Flatten(input),
+            Throws.TypeOf<NotSupportedException>().With.Message.Contains("widget-local /DR"));
+    }
+
+    [Test]
+    public void Flatten_rejects_encrypted_need_appearances_widgets_without_widget_local_font_resources()
+    {
+        using var input = new MemoryStream(EncryptedPdfFixtureFactory.CreateEmptyPasswordRc4EncryptedNeedAppearancesWidgetWithoutWidgetLocalDrPdf());
+
+        Assert.That(
+            () => PdfFlattener.Flatten(input),
+            Throws.TypeOf<NotSupportedException>().With.Message.Contains("widget-local /DR"));
+    }
+
+    [Test]
     public void Flatten_rejects_unresolved_indirect_references_during_serialization()
     {
         using var input = new MemoryStream(UnsupportedPdfFactory.CreateWidgetPdfWithUnresolvedResourceReference());
@@ -122,6 +142,16 @@ public sealed class ParserHardeningTests
     public void Flatten_rejects_stream_lengths_larger_than_supported_limit()
     {
         using var input = new MemoryStream(UnsupportedPdfFactory.CreateOversizedDirectStreamLengthPdf());
+
+        Assert.That(
+            () => PdfFlattener.Flatten(input),
+            Throws.TypeOf<NotSupportedException>().With.Message.Contains("Streams longer than"));
+    }
+
+    [Test]
+    public void Flatten_rejects_indirect_stream_lengths_larger_than_supported_limit()
+    {
+        using var input = new MemoryStream(UnsupportedPdfFactory.CreateOversizedIndirectStreamLengthPdf());
 
         Assert.That(
             () => PdfFlattener.Flatten(input),
@@ -158,18 +188,18 @@ public sealed class ParserHardeningTests
             Throws.TypeOf<InvalidOperationException>().With.Message.Contains("Stream /Length must be non-negative"));
     }
 
+    [Test]
+    public void Flatten_normalizes_negative_indirect_stream_lengths_to_invalid_operation()
+    {
+        using var input = new MemoryStream(UnsupportedPdfFactory.CreateNegativeIndirectStreamLengthPdf());
+
+        Assert.That(
+            () => PdfFlattener.Flatten(input),
+            Throws.TypeOf<InvalidOperationException>().With.Message.Contains("Stream /Length must be non-negative"));
+    }
+
     private static class UnsupportedPdfFactory
     {
-        public static byte[] CreateEncryptedWidgetPdf()
-        {
-            return BuildStandardWidgetPdf(
-                additionalObjects: new Dictionary<int, string>
-                {
-                    [11] = "<</Filter /Standard /V 1 /R 2 /Length 40>>"
-                },
-                trailerEntries: "/Encrypt 11 0 R");
-        }
-
         public static byte[] CreateIncrementalUpdateLikePdf()
         {
             return BuildStandardWidgetPdf(trailerEntries: "/Prev 12");
@@ -214,6 +244,13 @@ public sealed class ParserHardeningTests
                 widgetBody: "<</Type /Annot /Subtype /Widget /Rect [20 20 120 44] /FT /Btn /AP <</N <</Yes 8 0 R>>>> /AS /Yes>>");
         }
 
+        public static byte[] CreateNeedAppearancesWidgetWithoutAppearancePdf()
+        {
+            return BuildStandardWidgetPdf(
+                acroFormBody: "<</Fields [6 0 R] /NeedAppearances true /DR <</Font <</Helv 10 0 R>>>>>>",
+                widgetBody: "<</Type /Annot /Subtype /Widget /Rect [20 20 120 44] /FT /Tx /T (Filled) /V (Filled) /DA (/Helv 12 Tf 0 g)>>");
+        }
+
         public static byte[] CreateObjectStreamPdf()
         {
             return BuildStandardWidgetPdf(
@@ -252,6 +289,16 @@ public sealed class ParserHardeningTests
                 });
         }
 
+        public static byte[] CreateOversizedIndirectStreamLengthPdf()
+        {
+            return BuildStandardWidgetPdf(
+                additionalObjects: new Dictionary<int, string>
+                {
+                    [7] = "<< /Length 11 0 R >>\nstream\nq Q\nendstream",
+                    [11] = (PdfSecurityLimits.MaxStreamBytes + 1).ToString()
+                });
+        }
+
         public static byte[] CreateStartXrefOverflowPdf()
         {
             const string pdf = "%PDF-1.4\n"
@@ -280,6 +327,16 @@ public sealed class ParserHardeningTests
                 additionalObjects: new Dictionary<int, string>
                 {
                     [7] = "<< /Length -1 >>\nstream\nq Q\nendstream"
+                });
+        }
+
+        public static byte[] CreateNegativeIndirectStreamLengthPdf()
+        {
+            return BuildStandardWidgetPdf(
+                additionalObjects: new Dictionary<int, string>
+                {
+                    [7] = "<< /Length 11 0 R >>\nstream\nq Q\nendstream",
+                    [11] = "-1"
                 });
         }
 

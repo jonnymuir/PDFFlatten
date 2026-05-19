@@ -155,7 +155,7 @@ internal static class PdfSerializer
                 WriteAscii(output, "/" + name.Value);
                 break;
             case PdfLiteralString literalString:
-                WriteAscii(output, "(" + EscapeLiteralString(literalString.Value) + ")");
+                PdfStringEncoding.WriteLiteralStringBytes(output, literalString.Value);
                 break;
             case PdfHexString hexString:
                 WriteAscii(output, "<" + hexString.Value + ">");
@@ -213,16 +213,6 @@ internal static class PdfSerializer
         WriteAscii(output, "stream" + Environment.NewLine);
         output.Write(stream.Data, 0, stream.Data.Length);
         WriteAscii(output, Environment.NewLine + "endstream");
-    }
-
-    private static string EscapeLiteralString(string value)
-    {
-        return value
-            .Replace("\\", "\\\\")
-            .Replace("(", "\\(")
-            .Replace(")", "\\)")
-            .Replace("\r", "\\r")
-            .Replace("\n", "\\n");
     }
 
     private static bool EndsWithLineBreak(byte[] bytes)

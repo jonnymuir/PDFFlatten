@@ -13,11 +13,12 @@ internal sealed class PdfDocument
     private readonly Dictionary<int, PdfIndirectObject> _objects;
     private int _nextObjectNumber;
 
-    internal PdfDocument(byte[] originalBytes, byte[] preamble, PdfDictionary trailer, IEnumerable<PdfIndirectObject> objects)
+    internal PdfDocument(byte[] originalBytes, byte[] preamble, PdfDictionary trailer, IEnumerable<PdfIndirectObject> objects, bool wasDecrypted = false)
     {
         OriginalBytes = originalBytes ?? throw new ArgumentNullException(nameof(originalBytes));
         Preamble = preamble ?? throw new ArgumentNullException(nameof(preamble));
         Trailer = trailer ?? throw new ArgumentNullException(nameof(trailer));
+        WasDecrypted = wasDecrypted;
 
         if (objects is null)
         {
@@ -31,6 +32,7 @@ internal sealed class PdfDocument
     internal byte[] OriginalBytes { get; }
     internal byte[] Preamble { get; }
     internal PdfDictionary Trailer { get; set; }
+    internal bool WasDecrypted { get; }
 
     internal IReadOnlyCollection<PdfIndirectObject> Objects =>
         new ReadOnlyCollection<PdfIndirectObject>(_objects.Values.OrderBy(item => item.Number).ToList());

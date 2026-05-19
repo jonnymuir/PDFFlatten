@@ -130,22 +130,24 @@ PDFFlatten currently supports:
 - classic cross-reference-table PDFs (`xref` tables, not xref streams)
 - single-revision files with no incremental-update trailer chain (`/Prev` absent)
 - unencrypted AcroForm documents without `/XFA`
-- streams whose `/Length` values are direct integers
+- Standard-security RC4-128 (revision 3, `/V 2` + `/R 3`) AcroForm documents that open with an empty user password and do not use crypt filters; rewritten output is emitted unencrypted
+- streams whose `/Length` values are either direct integers or a single indirect reference to an integer object
 - source PDFs, direct stream payloads, and Flate-decoded appearance inspection payloads that stay within the library's explicit in-memory safety caps
 - page dictionaries with direct `/Annots` arrays
 - page dictionaries with their own `/Resources` dictionaries (no inherited page resources)
 - field hierarchies whose parent dictionaries contribute naming only; operative widget/terminal-field attributes stay self-contained
 - widget annotations whose normal appearance at `/AP /N` resolves to a single indirect stream
+- a narrower `/NeedAppearances` text-field slice where `/FT /Tx` widgets carry widget-local `/DA` + `/DR` + string `/V`, stay left-aligned and single-line, and need only simple text appearance synthesis
 - widgets/pages whose placement can be derived from `/Rect` and appearance `/BBox` without page rotation or appearance `/Matrix` transforms
 - PDFs whose reachable indirect references resolve cleanly during serialization
 
-This supported slice matches the current parser, flattener, and regression coverage. PDFs with no AcroForm/widgets are passed through unchanged.
+This supported slice matches the current parser, flattener, and regression coverage. Unencrypted PDFs with no AcroForm/widgets are passed through unchanged; supported encrypted inputs are rewritten as unencrypted output even if there is nothing to flatten.
 
 ## Rejection behavior
 
 PDFFlatten is intentionally fail-closed outside the supported slice. It does **not** attempt a best-effort rewrite for known-unsupported structures.
 
-- **`NotSupportedException`** is used for known out-of-scope structures such as xref streams, object streams, incremental-update trailers, encrypted files, XFA, inherited page resources, inherited operative field attributes (`/FT`, `/DA`, `/DR`, `/V`), indirect page `/Annots`, non-stream `/AP /N`, appearance-state dictionaries, unsupported transforms, unresolved indirect references during serialization, and inputs or stream payloads that exceed the library's explicit in-memory safety caps.
+- **`NotSupportedException`** is used for known out-of-scope structures such as xref streams, object streams, incremental-update trailers, encrypted files outside the narrow empty-password RC4-128 slice above, XFA, inherited page resources, inherited operative field attributes (`/FT`, `/DA`, `/DR`, `/V`), indirect page `/Annots`, widgets without usable `/AP /N` appearances outside the narrow `/NeedAppearances` text-field slice above, appearance-state dictionaries, unsupported transforms, unresolved indirect references during serialization, and inputs or stream payloads that exceed the library's explicit in-memory safety caps.
 - **`InvalidOperationException`** is used when the input is malformed or structurally incomplete for the supported parser (for example missing trailer data, malformed xref entries, or broken object boundaries).
 
 For production callers, treat both exception types as input rejection signals and keep the original PDF untouched.
@@ -154,11 +156,12 @@ For production callers, treat both exception types as input rejection signals an
 
 - xref streams, hybrid-reference files, and object streams are unsupported
 - incremental-update PDFs are unsupported; PDFFlatten expects a single classic trailer chain
-- encrypted PDFs and XFA forms are unsupported
-- streams with missing or indirect `/Length` values are unsupported
+- encrypted PDFs outside the narrow empty-password RC4-128 Standard-security slice above, and XFA forms, are unsupported
+- streams with missing `/Length` values, chained/cyclic/non-integer indirect `/Length` objects, or unresolved indirect `/Length` references are unsupported
 - very large source PDFs, direct stream payloads, or Flate-decoded appearance payloads are rejected once they exceed the library's explicit in-memory safety caps
 - indirect page `/Annots` arrays are unsupported
 - pages that inherit `/Resources` are unsupported because flattening could shadow ancestor resources
+- broader `/NeedAppearances`-driven appearance regeneration is unsupported; only the narrow widget-local single-line text-field slice above is synthesized today
 - page rotation and appearance `/Matrix` transforms are unsupported
 - stateful checkbox/radio appearance dictionaries are unsupported; `/AP /N` must resolve to a single indirect stream
 - operative field attributes inherited from parent field dictionaries are rejected fail-closed; only name-only parent hierarchies are in scope today
@@ -170,7 +173,7 @@ For production callers, treat both exception types as input rejection signals an
 
 - arbitrary user-supplied PDFs from unknown producer mixes
 - signed or compliance-sensitive workflows where rewriting the PDF would invalidate signatures or require preserving revision history
-- encrypted, XFA, transform-heavy, inherited-resource, inherited-operative-field-attribute, or stateful-appearance forms
+- encrypted forms outside the narrow empty-password RC4-128 Standard-security slice above, XFA, transform-heavy, inherited-resource, inherited-operative-field-attribute, or stateful-appearance forms
 - deployments that cannot pre-validate inputs and quarantine rejected files
 - teams that need a claim of broad Acrobat/browser/office producer coverage today
 
