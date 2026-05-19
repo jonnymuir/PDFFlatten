@@ -174,6 +174,108 @@ public sealed class PdfFlattenerTests
     }
 
     [Test]
+    public void Flatten_synthesizes_right_aligned_need_appearances_text_widget_appearances()
+    {
+        using var input = new MemoryStream(SimplePdfFactory.CreateDocumentWithNeedAppearancesRightAlignedTextWidgetWithoutAppearance());
+        using var flattened = PdfFlattener.Flatten(input);
+
+        var document = PdfParser.Parse(ReadAllBytes(flattened));
+        var catalog = document.GetRequiredDictionary(document.Trailer.RequireReference("Root"));
+        var page = GetFirstPage(document, catalog);
+        var resources = ResolvePageResources(document, page);
+        var xObjects = ResolveNestedDictionary(document, resources, "XObject");
+        var flattenedAppearanceRef = xObjects.Items["FldFlat001"] as PdfIndirectReference;
+
+        Assert.That(flattenedAppearanceRef, Is.Not.Null);
+
+        var flattenedAppearance = document.GetRequiredStream(flattenedAppearanceRef!);
+        var appearanceCommands = Encoding.ASCII.GetString(flattenedAppearance.Data);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(appearanceCommands, Does.Contain("/He 12 Tf"));
+            Assert.That(appearanceCommands, Does.Contain("1 0 0 1 61.304 8.4 Tm"));
+            Assert.That(appearanceCommands, Does.Contain("(123.45) Tj"));
+        });
+    }
+
+    [Test]
+    public void Flatten_synthesizes_multiline_need_appearances_text_widget_appearances()
+    {
+        using var input = new MemoryStream(SimplePdfFactory.CreateDocumentWithNeedAppearancesMultilineTextWidgetWithoutAppearance());
+        using var flattened = PdfFlattener.Flatten(input);
+
+        var document = PdfParser.Parse(ReadAllBytes(flattened));
+        var catalog = document.GetRequiredDictionary(document.Trailer.RequireReference("Root"));
+        var page = GetFirstPage(document, catalog);
+        var resources = ResolvePageResources(document, page);
+        var xObjects = ResolveNestedDictionary(document, resources, "XObject");
+        var flattenedAppearanceRef = xObjects.Items["FldFlat001"] as PdfIndirectReference;
+
+        Assert.That(flattenedAppearanceRef, Is.Not.Null);
+
+        var flattenedAppearance = document.GetRequiredStream(flattenedAppearanceRef!);
+        var appearanceCommands = Encoding.ASCII.GetString(flattenedAppearance.Data);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(appearanceCommands, Does.Contain("/He 12 Tf"));
+            Assert.That(appearanceCommands, Does.Contain("1 0 0 1 2 48.4 Tm (Line 1) Tj"));
+            Assert.That(appearanceCommands, Does.Contain("1 0 0 1 2 34 Tm (Line 2) Tj"));
+            Assert.That(appearanceCommands, Does.Contain("1 0 0 1 2 19.6 Tm (Line 3) Tj"));
+        });
+    }
+
+    [Test]
+    public void Flatten_wraps_multiline_need_appearances_text_widget_appearances()
+    {
+        using var input = new MemoryStream(SimplePdfFactory.CreateDocumentWithNeedAppearancesWrappedMultilineTextWidgetWithoutAppearance());
+        using var flattened = PdfFlattener.Flatten(input);
+
+        var document = PdfParser.Parse(ReadAllBytes(flattened));
+        var catalog = document.GetRequiredDictionary(document.Trailer.RequireReference("Root"));
+        var page = GetFirstPage(document, catalog);
+        var resources = ResolvePageResources(document, page);
+        var xObjects = ResolveNestedDictionary(document, resources, "XObject");
+        var flattenedAppearanceRef = xObjects.Items["FldFlat001"] as PdfIndirectReference;
+
+        Assert.That(flattenedAppearanceRef, Is.Not.Null);
+
+        var flattenedAppearance = document.GetRequiredStream(flattenedAppearanceRef!);
+        var appearanceCommands = Encoding.ASCII.GetString(flattenedAppearance.Data);
+
+        Assert.Multiple(() =>
+        {
+            Assert.That(appearanceCommands, Does.Contain("(Hyrule Castle) Tj"));
+            Assert.That(appearanceCommands, Does.Contain("(Courtyard) Tj"));
+        });
+    }
+
+    [Test]
+    public void Flatten_supports_need_appearances_documents_with_mixed_multiline_and_right_aligned_text_widgets()
+    {
+        using var input = new MemoryStream(SimplePdfFactory.CreateDocumentWithNeedAppearancesMixedTextWidgetsWithoutAppearance());
+        using var flattened = PdfFlattener.Flatten(input);
+
+        var document = PdfParser.Parse(ReadAllBytes(flattened));
+        var catalog = document.GetRequiredDictionary(document.Trailer.RequireReference("Root"));
+        var page = GetFirstPage(document, catalog);
+        var resources = ResolvePageResources(document, page);
+        var xObjects = ResolveNestedDictionary(document, resources, "XObject");
+        var flattenedResourceNames = xObjects.Items.Keys
+            .Where(key => key.StartsWith("FldFlat", StringComparison.Ordinal))
+            .ToArray();
+
+        Assert.Multiple(() =>
+        {
+            PdfValue? ignored = null;
+            Assert.That(catalog.TryGetValue("AcroForm", out ignored), Is.False);
+            Assert.That(page.TryGetValue("Annots", out ignored), Is.False);
+            Assert.That(flattenedResourceNames, Has.Length.EqualTo(6));
+        });
+    }
+
+    [Test]
     public void Flatten_rejects_missing_input_stream()
     {
         using var output = new MemoryStream();
@@ -295,6 +397,71 @@ public sealed class PdfFlattenerTests
                 [3] = "<</Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources 5 0 R /Annots [6 0 R] /Contents 9 0 R>>",
                 [5] = "<</Font <</F1 10 0 R>> /XObject <<>>>>",
                 [6] = "<</Type /Annot /Subtype /Widget /Rect [20 20 120 44] /FT /Tx /DA (0.1 0.2 0.3 rg /He 12 T\\146) /DR <</Font 11 0 R>> /V (Filled)>>",
+                [9] = Stream("q Q"),
+                [10] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>",
+                [11] = "<</He 10 0 R>>"
+            });
+        }
+
+        public static byte[] CreateDocumentWithNeedAppearancesRightAlignedTextWidgetWithoutAppearance()
+        {
+            return BuildPdf(new Dictionary<int, string>
+            {
+                [1] = "<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R] /NeedAppearances true>>>>",
+                [2] = "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+                [3] = "<</Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources 5 0 R /Annots [6 0 R] /Contents 9 0 R>>",
+                [5] = "<</Font <</F1 10 0 R>> /XObject <<>>>>",
+                [6] = "<</Type /Annot /Subtype /Widget /Rect [20 20 120 44] /FT /Tx /Q 2 /DA (0 g /He 12 Tf) /DR <</Font 11 0 R>> /V (123.45)>>",
+                [9] = Stream("q Q"),
+                [10] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>",
+                [11] = "<</He 10 0 R>>"
+            });
+        }
+
+        public static byte[] CreateDocumentWithNeedAppearancesMultilineTextWidgetWithoutAppearance()
+        {
+            return BuildPdf(new Dictionary<int, string>
+            {
+                [1] = "<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R] /NeedAppearances true>>>>",
+                [2] = "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+                [3] = "<</Type /Page /Parent 2 0 R /MediaBox [0 0 220 220] /Resources 5 0 R /Annots [6 0 R] /Contents 9 0 R>>",
+                [5] = "<</Font <</F1 10 0 R>> /XObject <<>>>>",
+                [6] = "<</Type /Annot /Subtype /Widget /Rect [20 20 160 80] /FT /Tx /Ff 4096 /DA (0 g /He 12 Tf) /DR <</Font 11 0 R>> /V (Line 1\\nLine 2\\rLine 3)>>",
+                [9] = Stream("q Q"),
+                [10] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>",
+                [11] = "<</He 10 0 R>>"
+            });
+        }
+
+        public static byte[] CreateDocumentWithNeedAppearancesMixedTextWidgetsWithoutAppearance()
+        {
+            return BuildPdf(new Dictionary<int, string>
+            {
+                [1] = "<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R] /NeedAppearances true>>>>",
+                [2] = "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+                [3] = "<</Type /Page /Parent 2 0 R /MediaBox [0 0 500 500] /Resources 5 0 R /Annots [6 0 R 7 0 R 8 0 R 9 0 R 10 0 R 11 0 R] /Contents 12 0 R>>",
+                [5] = "<</Font <</F1 13 0 R>> /XObject <<>>>>",
+                [6] = "<</Type /Annot /Subtype /Widget /Rect [40 360 200 440] /FT /Tx /Ff 4096 /DA (0 g /He 12 Tf) /DR <</Font 14 0 R>> /V (Line 1\\nLine 2)>>",
+                [7] = "<</Type /Annot /Subtype /Widget /Rect [220 360 420 384] /FT /Tx /Q 2 /DA (0 g /He 12 Tf) /DR <</Font 14 0 R>> /V (100.00)>>",
+                [8] = "<</Type /Annot /Subtype /Widget /Rect [220 330 420 354] /FT /Tx /Q 2 /DA (0 g /He 12 Tf) /DR <</Font 14 0 R>> /V (250.50)>>",
+                [9] = "<</Type /Annot /Subtype /Widget /Rect [220 300 420 324] /FT /Tx /Q 2 /DA (0 g /He 12 Tf) /DR <</Font 14 0 R>> /V (0.99)>>",
+                [10] = "<</Type /Annot /Subtype /Widget /Rect [220 270 420 294] /FT /Tx /Q 2 /DA (0 g /He 12 Tf) /DR <</Font 14 0 R>> /V (12.34)>>",
+                [11] = "<</Type /Annot /Subtype /Widget /Rect [220 240 420 264] /FT /Tx /Q 2 /DA (0 g /He 12 Tf) /DR <</Font 14 0 R>> /V (999.01)>>",
+                [12] = Stream("q Q"),
+                [13] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>",
+                [14] = "<</He 13 0 R>>"
+            });
+        }
+
+        public static byte[] CreateDocumentWithNeedAppearancesWrappedMultilineTextWidgetWithoutAppearance()
+        {
+            return BuildPdf(new Dictionary<int, string>
+            {
+                [1] = "<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R] /NeedAppearances true>>>>",
+                [2] = "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+                [3] = "<</Type /Page /Parent 2 0 R /MediaBox [0 0 220 220] /Resources 5 0 R /Annots [6 0 R] /Contents 9 0 R>>",
+                [5] = "<</Font <</F1 10 0 R>> /XObject <<>>>>",
+                [6] = "<</Type /Annot /Subtype /Widget /Rect [20 20 100 80] /FT /Tx /Ff 4096 /DA (0 g /He 12 Tf) /DR <</Font 11 0 R>> /V (Hyrule Castle Courtyard)>>",
                 [9] = Stream("q Q"),
                 [10] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>",
                 [11] = "<</He 10 0 R>>"

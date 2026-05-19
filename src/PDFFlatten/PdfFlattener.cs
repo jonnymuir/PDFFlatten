@@ -15,7 +15,10 @@ namespace PDFFlatten;
 /// </summary>
 public static class PdfFlattener
 {
-    private const int SupportedNeedAppearancesTextFieldFlags = 1 | 2 | 4 | 4_194_304 | 8_388_608;
+    private const int MultilineTextFieldFlag = 4_096;
+    private const int RightAlignedQuadding = 2;
+    private const int SupportedNeedAppearancesTextFieldFlags = 1 | 2 | 4 | MultilineTextFieldFlag | 4_194_304 | 8_388_608;
+    private static readonly Encoding Latin1Encoding = Encoding.GetEncoding("ISO-8859-1");
     private static readonly string[] UnsupportedInheritedFieldAttributeKeys = { "FT", "DA", "DR", "V" };
     private static readonly Regex FontOperatorRegex = new(
         @"/(?<font>[^\s/]+)\s+(?<size>[-+]?(?:\d+(?:\.\d+)?|\.\d+))\s+Tf",
@@ -36,7 +39,7 @@ public static class PdfFlattener
     /// <param name="input">A readable stream containing the source PDF.</param>
     /// <returns>A rewindable stream positioned at the beginning of the flattened PDF.</returns>
     /// <remarks>
-    /// <para>PDFFlatten is production-ready only for a constrained slice of AcroForm PDFs: classic xref-table files, no incremental-update trailer chain, no XFA, no digital signature fields, either no encryption or Standard-security RC4-128 encryption (<c>/V 2</c>, <c>/R 3</c>) that opens with an empty user password and no crypt filters, stream <c>/Length</c> values that are either direct integers or a single indirect reference to an integer object, direct page <c>/Annots</c>, non-inherited page <c>/Resources</c>, self-contained widget/terminal-field dictionaries for operative field attributes (<c>/FT</c>, <c>/DA</c>, <c>/DR</c>, <c>/V</c>), widget normal appearances that resolve to a single indirect stream at <c>/AP /N</c> without rotation or <c>/Matrix</c> transforms, or a much narrower <c>/NeedAppearances</c>-only text-field path that synthesizes a left-aligned single-line appearance from widget-local <c>/DA</c> + <c>/DR</c> + string <c>/V</c>, and bounded file/stream sizes that fit the in-memory implementation. Supported encrypted inputs are rewritten as unencrypted output PDFs.</para>
+    /// <para>PDFFlatten is production-ready only for a constrained slice of AcroForm PDFs: classic xref-table files, no incremental-update trailer chain, no XFA, no digital signature fields, either no encryption or Standard-security RC4-128 encryption (<c>/V 2</c>, <c>/R 3</c>) that opens with an empty user password and no crypt filters, stream <c>/Length</c> values that are either direct integers or a single indirect reference to an integer object, direct page <c>/Annots</c>, non-inherited page <c>/Resources</c>, self-contained widget/terminal-field dictionaries for operative field attributes (<c>/FT</c>, <c>/DA</c>, <c>/DR</c>, <c>/V</c>), widget normal appearances that resolve to a single indirect stream at <c>/AP /N</c> without rotation or <c>/Matrix</c> transforms, or a much narrower <c>/NeedAppearances</c>-only text-field path that synthesizes simple left- or right-aligned single-line text plus left-aligned multiline text from widget-local <c>/DA</c> + <c>/DR</c> + string <c>/V</c> when measured layout can stay inside a widget-local standard Helvetica-family Type1 font with default or <c>WinAnsiEncoding</c>, and bounded file/stream sizes that fit the in-memory implementation. Supported encrypted inputs are rewritten as unencrypted output PDFs.</para>
     /// <para>Inputs outside that slice fail closed with descriptive exceptions instead of a best-effort rewrite. Unencrypted PDFs with no AcroForm/widgets are returned unchanged; supported encrypted inputs are rewritten as unencrypted output even when no widgets flatten.</para>
     /// <para>Caller-owned streams remain open.</para>
     /// </remarks>
@@ -536,15 +539,19 @@ public static class PdfFlattener
             throw new NotSupportedException("NeedAppearances-only text appearance generation does not support widgets with /MaxLen.");
         }
 
-        if (TryResolveInteger(document, annotation, "Q", out var alignment) && alignment != 0)
+        var alignment = 0;
+        if (TryResolveInteger(document, annotation, "Q", out alignment)
+            && alignment != 0
+            && alignment != RightAlignedQuadding)
         {
-            throw new NotSupportedException("NeedAppearances-only text appearance generation supports left-aligned widgets only (/Q 0 or absent).");
+            throw new NotSupportedException("NeedAppearances-only text appearance generation supports left-aligned or right-aligned widgets only (/Q 0, /Q 2, or absent).");
         }
 
-        if (TryResolveInteger(document, annotation, "Ff", out var flags)
+        var flags = 0;
+        if (TryResolveInteger(document, annotation, "Ff", out flags)
             && (flags & ~SupportedNeedAppearancesTextFieldFlags) != 0)
         {
-            throw new NotSupportedException("NeedAppearances-only text appearance generation supports simple single-line text fields only.");
+            throw new NotSupportedException("NeedAppearances-only text appearance generation supports simple single-line widgets, right-aligned single-line widgets, and left-aligned multiline widgets only.");
         }
 
         if (!annotation.TryGetValue("DR", out _))
@@ -565,7 +572,13 @@ public static class PdfFlattener
 
         var settings = GetSimpleTextAppearanceSettings(annotation);
         var fontValue = ResolveWidgetTextFontResource(document, annotation, settings.FontName);
-        var appearanceReference = document.AddObject(CreateSimpleTextAppearanceStream(annotation, width, height, settings, fontValue));
+        var isMultiline = (flags & MultilineTextFieldFlag) != 0;
+        if (isMultiline && alignment == RightAlignedQuadding)
+        {
+            throw new NotSupportedException("NeedAppearances-only text appearance generation supports left-aligned multiline widgets only.");
+        }
+
+        var appearanceReference = document.AddObject(CreateSimpleTextAppearanceStream(document, annotation, width, height, settings, fontValue, alignment, isMultiline));
 
         return new FlattenPlacement(
             $"FldFlat{placementIndex + 1:000}",
@@ -720,11 +733,14 @@ public static class PdfFlattener
     }
 
     private static PdfStream CreateSimpleTextAppearanceStream(
+        PdfDocument document,
         PdfDictionary annotation,
         double width,
         double height,
         SimpleTextAppearanceSettings settings,
-        PdfValue fontValue)
+        PdfValue fontValue,
+        int alignment,
+        bool isMultiline)
     {
         var fonts = new PdfDictionary
         {
@@ -748,12 +764,49 @@ public static class PdfFlattener
             ["Resources"] = resources
         };
 
-        return new PdfStream(dictionary, BuildSimpleTextAppearanceContent(annotation, width, height, settings));
+        return new PdfStream(dictionary, BuildSimpleTextAppearanceContent(document, annotation, width, height, settings, fontValue, alignment, isMultiline));
     }
 
-    private static byte[] BuildSimpleTextAppearanceContent(PdfDictionary annotation, double width, double height, SimpleTextAppearanceSettings settings)
+    private static byte[] BuildSimpleTextAppearanceContent(
+        PdfDocument document,
+        PdfDictionary annotation,
+        double width,
+        double height,
+        SimpleTextAppearanceSettings settings,
+        PdfValue fontValue,
+        int alignment,
+        bool isMultiline)
     {
         using var output = new MemoryStream();
+        var horizontalPadding = Math.Min(2d, Math.Max(1d, width * 0.02d));
+        var value = GetTextWidgetValueBytes(annotation);
+        var fontDictionary = ResolveFontDictionary(document, fontValue);
+        var measuredFont = isMultiline || alignment == RightAlignedQuadding
+            ? ResolveMeasuredTextFont(fontDictionary)
+            : null;
+        var drawableWidth = width - (horizontalPadding * 2d);
+        if (isMultiline && drawableWidth <= 0)
+        {
+            throw new NotSupportedException("NeedAppearances-only multiline text appearance generation requires a positive drawable width.");
+        }
+
+        var textLines = isMultiline
+            ? WrapSimpleMultilineText(value, measuredFont!, settings.FontSize, drawableWidth)
+            : new List<byte[]> { value };
+        var firstBaseline = isMultiline
+            ? Math.Max(0d, height - settings.FontSize - horizontalPadding + (settings.FontSize * 0.2d))
+            : Math.Max(0d, ((height - settings.FontSize) / 2d) + (settings.FontSize * 0.2d));
+        var lineHeight = Math.Max(settings.FontSize * 1.2d, settings.FontSize + 1d);
+
+        if (isMultiline)
+        {
+            var lastBaseline = firstBaseline - ((textLines.Count - 1) * lineHeight);
+            if (lastBaseline < 0)
+            {
+                throw new NotSupportedException("NeedAppearances-only multiline text appearance generation does not support text that overflows widget height.");
+            }
+        }
+
         WriteAscii(output, "q 0 0 ");
         WriteAscii(output, FormatNumber(width));
         WriteAscii(output, " ");
@@ -764,14 +817,146 @@ public static class PdfFlattener
         WriteAscii(output, settings.FontName);
         WriteAscii(output, " ");
         WriteAscii(output, FormatNumber(settings.FontSize));
-        WriteAscii(output, " Tf ");
-        WriteAscii(output, FormatNumber(Math.Min(2d, Math.Max(1d, width * 0.02d))));
-        WriteAscii(output, " ");
-        WriteAscii(output, FormatNumber(Math.Max(0d, ((height - settings.FontSize) / 2d) + (settings.FontSize * 0.2d))));
-        WriteAscii(output, " Td ");
-        WritePdfTextLiteral(output, GetTextWidgetValueBytes(annotation));
-        WriteAscii(output, " Tj ET Q");
+        WriteAscii(output, " Tf");
+
+        for (var index = 0; index < textLines.Count; index++)
+        {
+            var line = textLines[index];
+            var baselineY = Math.Max(0d, firstBaseline - (index * lineHeight));
+            var originX = CalculateTextOriginX(measuredFont, line, width, settings.FontSize, alignment, horizontalPadding);
+
+            WriteAscii(output, " 1 0 0 1 ");
+            WriteAscii(output, FormatNumber(originX));
+            WriteAscii(output, " ");
+            WriteAscii(output, FormatNumber(baselineY));
+            WriteAscii(output, " Tm ");
+            WritePdfTextLiteral(output, line);
+            WriteAscii(output, " Tj");
+        }
+
+        WriteAscii(output, " ET Q");
         return output.ToArray();
+    }
+
+    private static List<byte[]> WrapSimpleMultilineText(byte[] value, SimpleMeasuredFont metrics, double fontSize, double maxWidth)
+    {
+        var normalized = NormalizeMultilineLayoutText(value);
+        var paragraphs = normalized.Split('\n');
+        var lines = new List<byte[]>();
+
+        foreach (var paragraph in paragraphs)
+        {
+            if (paragraph.Length == 0)
+            {
+                lines.Add(Array.Empty<byte>());
+                continue;
+            }
+
+            var words = paragraph.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+            if (words.Length == 0)
+            {
+                lines.Add(Array.Empty<byte>());
+                continue;
+            }
+
+            var currentLine = words[0];
+            EnsureMeasuredLineFits(currentLine, metrics, fontSize, maxWidth);
+
+            for (var index = 1; index < words.Length; index++)
+            {
+                var candidate = currentLine + " " + words[index];
+                if (metrics.MeasureTextWidth(Latin1Encoding.GetBytes(candidate), fontSize) <= maxWidth)
+                {
+                    currentLine = candidate;
+                    continue;
+                }
+
+                lines.Add(Latin1Encoding.GetBytes(currentLine));
+                EnsureMeasuredLineFits(words[index], metrics, fontSize, maxWidth);
+                currentLine = words[index];
+            }
+
+            lines.Add(Latin1Encoding.GetBytes(currentLine));
+        }
+
+        if (lines.Count == 0)
+        {
+            lines.Add(Array.Empty<byte>());
+        }
+
+        return lines;
+    }
+
+    private static string NormalizeMultilineLayoutText(byte[] value)
+    {
+        return Latin1Encoding.GetString(value)
+            .Replace("\r\n", "\n")
+            .Replace('\r', '\n')
+            .Replace('\t', ' ');
+    }
+
+    private static void EnsureMeasuredLineFits(string value, SimpleMeasuredFont metrics, double fontSize, double maxWidth)
+    {
+        if (metrics.MeasureTextWidth(Latin1Encoding.GetBytes(value), fontSize) > maxWidth)
+        {
+            throw new NotSupportedException("NeedAppearances-only multiline text appearance generation does not support words that exceed widget width.");
+        }
+    }
+
+    private static double CalculateTextOriginX(
+        SimpleMeasuredFont? measuredFont,
+        byte[] value,
+        double width,
+        double fontSize,
+        int alignment,
+        double horizontalPadding)
+    {
+        if (alignment != RightAlignedQuadding)
+        {
+            return horizontalPadding;
+        }
+
+        var textWidth = measuredFont!.MeasureTextWidth(value, fontSize);
+        var availableWidth = width - (horizontalPadding * 2d);
+        if (textWidth > availableWidth)
+        {
+            throw new NotSupportedException("NeedAppearances-only right-aligned text appearance generation does not support text that overflows widget width.");
+        }
+
+        return width - horizontalPadding - textWidth;
+    }
+
+    private static PdfDictionary ResolveFontDictionary(PdfDocument document, PdfValue fontValue)
+    {
+        return fontValue switch
+        {
+            PdfDictionary dictionary => dictionary,
+            PdfIndirectReference reference => document.GetRequiredDictionary(reference),
+            _ => throw new NotSupportedException("NeedAppearances-only text appearance generation requires a font dictionary.")
+        };
+    }
+
+    private static SimpleMeasuredFont ResolveMeasuredTextFont(PdfDictionary fontDictionary)
+    {
+        if (!string.Equals(fontDictionary.GetNameValue("Subtype"), "Type1", StringComparison.Ordinal))
+        {
+            throw new NotSupportedException("NeedAppearances-only multiline and right-aligned text appearance generation requires a standard Type1 Helvetica-family font.");
+        }
+
+        var baseFontName = fontDictionary.GetNameValue("BaseFont");
+        if (!string.Equals(baseFontName, "Helvetica", StringComparison.Ordinal)
+            && !string.Equals(baseFontName, "Helvetica-Oblique", StringComparison.Ordinal))
+        {
+            throw new NotSupportedException("NeedAppearances-only multiline and right-aligned text appearance generation requires a standard Helvetica-family font.");
+        }
+
+        if (fontDictionary.TryGetValue("Encoding", out var encodingValue)
+            && encodingValue is not PdfName { Value: "WinAnsiEncoding" })
+        {
+            throw new NotSupportedException("NeedAppearances-only multiline and right-aligned text appearance generation requires WinAnsiEncoding or default encoding.");
+        }
+
+        return SimpleMeasuredFont.Helvetica;
     }
 
     private static byte[] GetTextWidgetValueBytes(PdfDictionary annotation)
@@ -1365,6 +1550,122 @@ public static class PdfFlattener
     {
         var bytes = Encoding.ASCII.GetBytes(value);
         output.Write(bytes, 0, bytes.Length);
+    }
+
+    private sealed class SimpleMeasuredFont
+    {
+        internal static readonly SimpleMeasuredFont Helvetica = new();
+
+        internal double MeasureTextWidth(byte[] value, double fontSize)
+        {
+            var totalWidth = 0;
+            foreach (var current in value)
+            {
+                if (current == 10 || current == 13)
+                {
+                    continue;
+                }
+
+                totalWidth += GetHelveticaGlyphWidth(current);
+            }
+
+            return totalWidth * fontSize / 1000d;
+        }
+
+        private static int GetHelveticaGlyphWidth(byte value)
+        {
+            return value switch
+            {
+                32 => 278,
+                33 => 278,
+                34 => 355,
+                35 => 556,
+                36 => 556,
+                37 => 889,
+                38 => 667,
+                39 => 222,
+                40 => 333,
+                41 => 333,
+                42 => 389,
+                43 => 584,
+                44 => 278,
+                45 => 333,
+                46 => 278,
+                47 => 278,
+                >= 48 and <= 57 => 556,
+                58 => 278,
+                59 => 278,
+                60 => 584,
+                61 => 584,
+                62 => 584,
+                63 => 556,
+                64 => 1015,
+                65 => 667,
+                66 => 667,
+                67 => 722,
+                68 => 722,
+                69 => 667,
+                70 => 611,
+                71 => 778,
+                72 => 722,
+                73 => 278,
+                74 => 500,
+                75 => 667,
+                76 => 556,
+                77 => 833,
+                78 => 722,
+                79 => 778,
+                80 => 667,
+                81 => 778,
+                82 => 722,
+                83 => 667,
+                84 => 611,
+                85 => 722,
+                86 => 667,
+                87 => 944,
+                88 => 667,
+                89 => 667,
+                90 => 611,
+                91 => 278,
+                92 => 278,
+                93 => 278,
+                94 => 469,
+                95 => 556,
+                96 => 222,
+                97 => 556,
+                98 => 556,
+                99 => 500,
+                100 => 556,
+                101 => 556,
+                102 => 278,
+                103 => 556,
+                104 => 556,
+                105 => 222,
+                106 => 222,
+                107 => 500,
+                108 => 222,
+                109 => 833,
+                110 => 556,
+                111 => 556,
+                112 => 556,
+                113 => 556,
+                114 => 333,
+                115 => 500,
+                116 => 278,
+                117 => 556,
+                118 => 500,
+                119 => 722,
+                120 => 500,
+                121 => 500,
+                122 => 500,
+                123 => 334,
+                124 => 260,
+                125 => 334,
+                126 => 584,
+                163 => 556,
+                _ => throw new NotSupportedException("NeedAppearances-only multiline and right-aligned text appearance generation supports printable WinAnsi text only.")
+            };
+        }
     }
 
     private sealed class SimpleTextAppearanceSettings

@@ -137,7 +137,7 @@ PDFFlatten currently supports:
 - page dictionaries with their own `/Resources` dictionaries (no inherited page resources)
 - field hierarchies whose parent dictionaries contribute naming only; operative widget/terminal-field attributes stay self-contained
 - widget annotations whose normal appearance at `/AP /N` resolves to a single indirect stream
-- a narrower `/NeedAppearances` text-field slice where `/FT /Tx` widgets carry widget-local `/DA` + `/DR` + string `/V`, stay left-aligned and single-line, and need only simple text appearance synthesis
+- a narrower `/NeedAppearances` text-field slice where `/FT /Tx` widgets carry widget-local `/DA` + `/DR` + string `/V`, stay inside the simple left/right single-line or left-aligned multiline layout lane, and use a widget-local standard Helvetica-family Type1 font with default or `WinAnsiEncoding` when measured layout is required
 - widgets/pages whose placement can be derived from `/Rect` and appearance `/BBox` without page rotation or appearance `/Matrix` transforms
 - PDFs whose reachable indirect references resolve cleanly during serialization
 
@@ -161,7 +161,7 @@ For production callers, treat both exception types as input rejection signals an
 - very large source PDFs, direct stream payloads, or Flate-decoded appearance payloads are rejected once they exceed the library's explicit in-memory safety caps
 - indirect page `/Annots` arrays are unsupported
 - pages that inherit `/Resources` are unsupported because flattening could shadow ancestor resources
-- broader `/NeedAppearances`-driven appearance regeneration is unsupported; only the narrow widget-local single-line text-field slice above is synthesized today
+- broader `/NeedAppearances`-driven appearance regeneration is unsupported; only the narrow widget-local single-line/right-aligned and left-aligned multiline text-field slice above is synthesized today, and that still excludes centered quadding, right-aligned multiline text, non-Helvetica measured-layout fonts, auto-fit, borders/backgrounds, and generic viewer-style rendering
 - page rotation and appearance `/Matrix` transforms are unsupported
 - stateful checkbox/radio appearance dictionaries are unsupported; `/AP /N` must resolve to a single indirect stream
 - operative field attributes inherited from parent field dictionaries are rejected fail-closed; only name-only parent hierarchies are in scope today

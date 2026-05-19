@@ -160,6 +160,30 @@ public sealed partial class UnsupportedPdfGuardTests
     }
 
     [Test]
+    public void Flatten_rejects_need_appearances_widgets_with_centered_quadding()
+    {
+        AssertRejects<NotSupportedException>(
+            UnsupportedPdfFixtureFactory.CreateNeedAppearancesWidgetWithCenteredQuaddingPdf(),
+            "left-aligned or right-aligned widgets only");
+    }
+
+    [Test]
+    public void Flatten_rejects_need_appearances_widgets_with_password_flags()
+    {
+        AssertRejects<NotSupportedException>(
+            UnsupportedPdfFixtureFactory.CreateNeedAppearancesWidgetWithPasswordFlagPdf(),
+            "simple single-line widgets, right-aligned single-line widgets, and left-aligned multiline widgets only");
+    }
+
+    [Test]
+    public void Flatten_rejects_need_appearances_widgets_with_multiline_right_aligned_quadding()
+    {
+        AssertRejects<NotSupportedException>(
+            UnsupportedPdfFixtureFactory.CreateNeedAppearancesMultilineRightAlignedWidgetPdf(),
+            "left-aligned multiline widgets only");
+    }
+
+    [Test]
     public void Flatten_keeps_each_replayed_appearance_reachable_from_page_resources()
     {
         using var input = File.OpenRead(TestAssets.SamplePdfPath);
@@ -439,6 +463,48 @@ public sealed partial class UnsupportedPdfGuardTests
                 [3] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << >> >> /Annots [6 0 R] /Contents 4 0 R >>",
                 [4] = "<< /Length 3 >>\nstream\nq Q\nendstream",
                 [6] = "<< /Type /Annot /Subtype /Widget /Rect [20 20 120 44] /FT /Tx /T (Field01) /V (Value 01) /AP <<>> >>"
+            });
+        }
+
+        public static byte[] CreateNeedAppearancesWidgetWithCenteredQuaddingPdf()
+        {
+            return BuildPdf(new Dictionary<int, string>
+            {
+                [1] = "<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R] /NeedAppearances true>>>>",
+                [2] = "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+                [3] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << >> >> /Annots [6 0 R] /Contents 4 0 R >>",
+                [4] = "<< /Length 3 >>\nstream\nq Q\nendstream",
+                [6] = "<< /Type /Annot /Subtype /Widget /Rect [20 20 120 44] /FT /Tx /Q 1 /DA (0 g /He 12 Tf) /DR <</Font 8 0 R>> /V (Value 01) >>",
+                [8] = "<</He 9 0 R>>",
+                [9] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>"
+            });
+        }
+
+        public static byte[] CreateNeedAppearancesWidgetWithPasswordFlagPdf()
+        {
+            return BuildPdf(new Dictionary<int, string>
+            {
+                [1] = "<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R] /NeedAppearances true>>>>",
+                [2] = "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+                [3] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << >> >> /Annots [6 0 R] /Contents 4 0 R >>",
+                [4] = "<< /Length 3 >>\nstream\nq Q\nendstream",
+                [6] = "<< /Type /Annot /Subtype /Widget /Rect [20 20 120 44] /FT /Tx /Ff 8192 /DA (0 g /He 12 Tf) /DR <</Font 8 0 R>> /V (secret) >>",
+                [8] = "<</He 9 0 R>>",
+                [9] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>"
+            });
+        }
+
+        public static byte[] CreateNeedAppearancesMultilineRightAlignedWidgetPdf()
+        {
+            return BuildPdf(new Dictionary<int, string>
+            {
+                [1] = "<</Type /Catalog /Pages 2 0 R /AcroForm <</Fields [6 0 R] /NeedAppearances true>>>>",
+                [2] = "<</Type /Pages /Count 1 /Kids [3 0 R]>>",
+                [3] = "<< /Type /Page /Parent 2 0 R /MediaBox [0 0 200 200] /Resources << /XObject << >> >> /Annots [6 0 R] /Contents 4 0 R >>",
+                [4] = "<< /Length 3 >>\nstream\nq Q\nendstream",
+                [6] = "<< /Type /Annot /Subtype /Widget /Rect [20 20 120 80] /FT /Tx /Q 2 /Ff 4096 /DA (0 g /He 12 Tf) /DR <</Font 8 0 R>> /V (Line 1\nLine 2) >>",
+                [8] = "<</He 9 0 R>>",
+                [9] = "<</Type /Font /Subtype /Type1 /BaseFont /Helvetica /Encoding /WinAnsiEncoding>>"
             });
         }
 
